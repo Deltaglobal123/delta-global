@@ -1,0 +1,3 @@
+# SPA fallback: serve index.html for every route so deep links like
+# /pricing and /legal/terms work on a static host (Netlify format).
+/*  /index.html  200
