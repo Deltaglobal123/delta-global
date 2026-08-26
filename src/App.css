@@ -168,6 +168,8 @@
   width: 32px;
   height: 32px;
   flex: 0 0 auto;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px -8px rgba(60, 230, 143, 0.7);
 }
 
 .brand-text {
@@ -302,18 +304,31 @@
     border-color 0.35s ease;
 }
 
-.mobile-menu a {
+.mobile-menu a:not(.btn) {
   padding: 12px 4px;
   font-size: 16px;
   color: var(--text);
 }
 
-.mobile-menu .btn {
-  margin: 8px 0 18px;
+/* Login and Get started share one row — side by side, not stacked. */
+.mobile-menu-actions {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0 18px;
+}
+
+.mobile-menu-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: 12px;
 }
 
 .mobile-menu.is-open {
-  max-height: 340px;
+  /* Tall enough for every item, and scrollable on short screens, so nothing at
+     the bottom of the list can be cut off. */
+  max-height: min(78svh, 620px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding-top: 8px;
   border-bottom-color: var(--border);
 }
@@ -331,19 +346,6 @@
     display: none;
   }
 
-  .nav-toggle,
-  .mobile-menu {
-    display: flex;
-  }
-}
-
-@media (max-width: 860px) {
-  .nav-links,
-  .nav-cta {
-    display: none;
-  }
-
-  .nav-toggle,
   .mobile-menu {
     display: flex;
   }
@@ -2297,7 +2299,11 @@
   position: relative;
   overflow: hidden;
   display: grid;
-  place-items: center;
+  /* An auto column sizes to max-content, which pushes the card wider than the
+     phone and clips it. minmax(0, 1fr) pins the column to the viewport. */
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  justify-items: center;
   min-height: 100svh;
   padding: clamp(32px, 6vw, 72px) 0;
 }
@@ -3123,6 +3129,7 @@
 
 .request-list li {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
@@ -3372,6 +3379,15 @@
     flex: 1;
   }
 
+}
+
+@media (max-width: 1180px) {
+  .wallet-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
   .wallet-cards {
     grid-template-columns: 1fr;
   }
@@ -3380,6 +3396,20 @@
 @media (max-width: 560px) {
   .app-page-head {
     align-items: flex-start;
+  }
+
+  /* Full-width targets are easier to hit than two buttons sharing a row. */
+  .app-page-actions {
+    width: 100%;
+  }
+
+  .app-page-actions .btn {
+    flex: 1;
+  }
+
+  .start-actions .btn,
+  .empty-state .btn {
+    width: 100%;
   }
 
   .waiting-banner {

@@ -19,11 +19,7 @@ export const NAV_LINKS = [
   { label: 'Contact', to: '/contact' },
 ] as const
 
-/**
- * The nav "Login" button. There is no authentication in this project yet, so it
- * points at the signup flow — repoint it at the real login URL before launch, or
- * remove the button. A login link that lands on a signup form loses users.
- */
+/** The nav "Login" button — the real JWT sign-in screen. */
 export const LOGIN_URL = '/login'
 
 export const LEGAL_LINKS = [

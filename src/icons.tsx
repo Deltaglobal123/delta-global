@@ -1,14 +1,74 @@
 export function LogoMark() {
   return (
-    <svg className="logo-mark" viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="9" fill="url(#logo-grad)" />
-      <path d="M16 8.5 23.5 22h-15L16 8.5Z" fill="#04120c" />
+    <svg className="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
       <defs>
-        <linearGradient id="logo-grad" x1="0" y1="0" x2="32" y2="32">
-          <stop stopColor="#2ee6a8" />
-          <stop offset="1" stopColor="#4f8cff" />
+        <linearGradient
+          id="dg-tile"
+          x1="4"
+          y1="2"
+          x2="58"
+          y2="62"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#3CE68F" />
+          <stop offset="0.42" stopColor="#57E1C6" />
+          <stop offset="0.72" stopColor="#7FD5E4" />
+          <stop offset="1" stopColor="#AEBCF3" />
+        </linearGradient>
+        <linearGradient
+          id="dg-gloss"
+          x1="10"
+          y1="0"
+          x2="34"
+          y2="40"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#FFFFFF" stopOpacity="0.28" />
+          <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient
+          id="dg-face"
+          x1="27"
+          y1="14"
+          x2="48"
+          y2="50"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#FFFFFF" />
+          <stop offset="1" stopColor="#DFF9F0" />
         </linearGradient>
       </defs>
+
+      <rect width="64" height="64" rx="16.5" fill="url(#dg-tile)" />
+      <rect width="64" height="64" rx="16.5" fill="url(#dg-gloss)" />
+
+      {/* Back play: cut through the tile to the dark beneath. */}
+      <path
+        d="M17.5 15.5 36 32 17.5 48.5Z"
+        fill="#0E2F2C"
+        stroke="#0E2F2C"
+        strokeWidth="2.4"
+        strokeLinejoin="round"
+      />
+
+      {/* The front play's cast shadow, offset right and down. */}
+      <path
+        d="M29.5 15 51.5 32.6 29.5 50.2Z"
+        fill="#0B2A45"
+        opacity="0.85"
+        stroke="#0B2A45"
+        strokeWidth="2.4"
+        strokeLinejoin="round"
+      />
+
+      {/* Front play. */}
+      <path
+        d="M27 15 49 32 27 49Z"
+        fill="url(#dg-face)"
+        stroke="url(#dg-face)"
+        strokeWidth="2.4"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }

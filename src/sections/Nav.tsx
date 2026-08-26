@@ -90,20 +90,22 @@ export function Nav() {
         {NAV_LINKS.map((link) => (
           <NavItem key={link.to} to={link.to} label={link.label} />
         ))}
-        {user ? (
-          <Link className="btn btn-primary" to="/app">
-            My dashboard
-          </Link>
-        ) : (
-          <>
-            <Link className="btn btn-ghost" to={LOGIN_URL}>
-              Login
+        <div className="mobile-menu-actions">
+          {user ? (
+            <Link className="btn btn-primary" to="/app">
+              My dashboard
             </Link>
-            <Link className="btn btn-primary" to="/register">
-              Get started
-            </Link>
-          </>
-        )}
+          ) : (
+            <>
+              <Link className="btn btn-ghost" to={LOGIN_URL}>
+                Login
+              </Link>
+              <Link className="btn btn-primary" to="/register">
+                Get started
+              </Link>
+            </>
+          )}
+        </div>
       </div>
     </header>
   )
