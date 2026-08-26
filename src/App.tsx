@@ -4,7 +4,6 @@ import { Layout } from './components/Layout'
 import { RequireAuth } from './components/app/RequireAuth'
 import { AuthProvider } from './lib/auth'
 import { Home } from './pages/Home'
-
 import { About } from './pages/About'
 import { PricingPage } from './pages/PricingPage'
 import { GetStarted } from './pages/GetStarted'
