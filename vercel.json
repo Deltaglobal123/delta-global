@@ -16,8 +16,13 @@
       "source": "/storage/:path*",
       "destination": "https://deltaglobal-backend.onrender.com/storage/:path*"
     },
-    
-    { "source": "/build/:path*", "destination": "https://deltaglobal-backend.onrender.com/build/:path*" }
-
+    {
+      "source": "/build/:path*",
+      "destination": "https://deltaglobal-backend.onrender.com/build/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
