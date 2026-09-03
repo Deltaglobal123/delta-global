@@ -11,6 +11,10 @@
     {
       "source": "/admin/:path*",
       "destination": "https://deltaglobal-backend.onrender.com/admin/:path*"
+    },
+    {
+      "source": "/storage/:path*",
+      "destination": "https://deltaglobal-backend.onrender.com/storage/:path*"
     }
   ]
 }
