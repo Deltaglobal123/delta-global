@@ -4,6 +4,7 @@ import { HERO, HERO_STATS } from '../data'
 import { HeroArt } from '../art'
 import { ArrowIcon, CheckIcon } from '../icons'
 import { useReveal } from '../useReveal'
+import { getWhatsAppSupportUrl } from '../lib/support'
 
 function Stat({
   stat,
@@ -56,6 +57,15 @@ export function Hero() {
             Explore how it works
             <ArrowIcon />
           </Link>
+          <a
+            className="btn btn-primary btn-lg"
+            href={getWhatsAppSupportUrl('Hello Delta Global, I would like to start a project.')}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Start project
+            <ArrowIcon />
+          </a>
         </div>
 
         <ul className="trust">
