@@ -3091,6 +3091,35 @@
   color: var(--accent);
 }
 
+.start-balance-row {
+  margin-bottom: 18px;
+}
+
+.trade-amount-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 520px;
+}
+
+.trade-amount-field {
+  margin-top: 4px;
+}
+
+.trade-insufficient {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.start-confirm-box {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 540px;
+}
+
 .start-actions {
   display: flex;
   flex-wrap: wrap;

@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../../lib/api'
 import { useStatus } from '../../lib/status-context'
 import { useList } from '../../lib/useList'
-import { formatDate } from '../../lib/money'
+import { formatDate, paiseToInput, validateTradeAmount, MIN_TRADE_PAISE } from '../../lib/money'
 import type { Trading as TradingRun, Wallet } from '../../lib/types'
 import { AppPageHead } from '../../components/app/AppPageHead'
 import { AppSection } from '../../components/app/AppSection'
@@ -15,39 +15,69 @@ export function Trading() {
   const { status, loading, refresh } = useStatus()
   const history = useList<TradingRun>('/trading')
 
+  const [amount, setAmount] = useState('')
+  const [amountError, setAmountError] = useState<string | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [alert, setAlert] = useState<string | null>(null)
   const [sent, setSent] = useState<string | null>(null)
 
   const wallet = status?.wallet ?? null
+  const available = wallet?.available_paise ?? 0
   const trade = status?.active_trade ?? null
-  const canStart = status?.can_start_trading ?? false
+  const canStart = Boolean(status?.can_start_trading && available >= MIN_TRADE_PAISE)
+
+  function handleInitiate(event?: FormEvent) {
+    if (event) event.preventDefault()
+    setAlert(null)
+    setSent(null)
+
+    const err = validateTradeAmount(amount, available)
+    if (err) {
+      setAmountError(err)
+      return
+    }
+
+    setAmountError(null)
+    setConfirming(true)
+  }
 
   async function start() {
     setAlert(null)
     setSent(null)
+
+    const err = validateTradeAmount(amount, available)
+    if (err) {
+      setAmountError(err)
+      setConfirming(false)
+      return
+    }
+
     setBusy(true)
 
     try {
-      // No body: pressing the button commits the whole available balance, and
-      // the response echoes back exactly what was taken.
       const response = await api.post<{
         data: TradingRun
         wallet: Wallet
         message: string
-      }>('/trading/start')
+      }>('/trading/start', {
+        amount: amount.trim(),
+      })
 
       setSent(response.message)
+      setAmount('')
       setConfirming(false)
       history.reload()
       refresh()
     } catch (caught) {
-      setAlert(
-        caught instanceof ApiError
-          ? caught.message
-          : 'Something went wrong. Please try again.',
-      )
+      if (caught instanceof ApiError) {
+        setAlert(caught.message)
+        if (caught.errors.amount) {
+          setAmountError(caught.errors.amount[0])
+        }
+      } else {
+        setAlert('Something went wrong. Please try again.')
+      }
       setConfirming(false)
     } finally {
       setBusy(false)
@@ -59,7 +89,7 @@ export function Trading() {
       <AppPageHead
         eyebrow="AI trading"
         title="Start a trading run"
-        lead="Starting a run commits your entire available balance. The money stays yours — it is just held while the desk works, and comes back with the result."
+        lead="Enter your desired trade amount (minimum ₹499.00 up to your available balance). The money stays yours — it is held while the desk works and returns with the result."
       />
 
       {sent && (
@@ -121,17 +151,31 @@ export function Trading() {
           </div>
         ) : (
           <div className="start-card">
-            <span className="run-label">Available to commit</span>
-            <strong className="start-amount">
-              {wallet?.available ?? (loading ? '…' : '₹0.00')}
-            </strong>
+            <div className="start-balance-row">
+              <div>
+                <span className="run-label">Available balance</span>
+                <strong className="start-amount">
+                  {wallet?.available ?? (loading ? '…' : '₹0.00')}
+                </strong>
+              </div>
+            </div>
 
-            {confirming ? (
-              <>
+            {available < MIN_TRADE_PAISE ? (
+              <div className="trade-insufficient">
+                <p className="app-muted">
+                  You need a minimum balance of <strong>₹499.00</strong> to start an AI trading run.
+                </p>
+                <div className="start-actions">
+                  <Link className="btn btn-primary btn-lg" to="/app/deposit">
+                    Add money
+                    <ArrowIcon />
+                  </Link>
+                </div>
+              </div>
+            ) : confirming ? (
+              <div className="start-confirm-box">
                 <p className="start-confirm">
-                  This commits <strong>{wallet?.available}</strong> — your whole
-                  available balance — to one trading run. You cannot withdraw
-                  until it settles.
+                  This commits <strong>₹{amount}</strong> to an AI trading run. The money is held while the desk trades and returns with the profit/loss upon settlement. Any remaining balance stays free.
                 </p>
                 <div className="start-actions">
                   <button
@@ -140,7 +184,7 @@ export function Trading() {
                     onClick={start}
                     disabled={busy}
                   >
-                    {busy ? 'Committing…' : `Yes, commit ${wallet?.available}`}
+                    {busy ? 'Committing…' : `Yes, commit ₹${amount}`}
                   </button>
                   <button
                     type="button"
@@ -148,34 +192,67 @@ export function Trading() {
                     onClick={() => setConfirming(false)}
                     disabled={busy}
                   >
-                    Cancel
+                    Change amount
                   </button>
                 </div>
-              </>
+              </div>
             ) : (
-              <>
-                <p className="app-muted">
-                  {canStart
-                    ? 'The whole amount above goes into the run. There is no partial stake.'
-                    : 'You need money in your wallet before a run can start.'}
-                </p>
+              <form className="trade-amount-form" onSubmit={handleInitiate} noValidate>
+                <div className="field trade-amount-field">
+                  <label htmlFor="trade_amount">Trade Amount (₹)</label>
+                  <div className="amount-field">
+                    <input
+                      id="trade_amount"
+                      inputMode="decimal"
+                      placeholder="499"
+                      value={amount}
+                      aria-invalid={Boolean(amountError)}
+                      onChange={(e) => {
+                        setAmount(e.target.value)
+                        setAmountError(null)
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => {
+                        setAmount('499')
+                        setAmountError(null)
+                      }}
+                    >
+                      Min ₹499
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => {
+                        setAmount(paiseToInput(available))
+                        setAmountError(null)
+                      }}
+                    >
+                      Max
+                    </button>
+                  </div>
+                  {amountError ? (
+                    <p className="field-error">{amountError}</p>
+                  ) : (
+                    <p className="field-hint">
+                      Min: ₹499.00 · Max: {wallet?.available ?? '₹0.00'} · You can trade any amount in between.
+                    </p>
+                  )}
+                </div>
+
                 <div className="start-actions">
                   <button
-                    type="button"
+                    type="submit"
                     className="btn btn-primary btn-lg"
-                    onClick={() => setConfirming(true)}
                     disabled={!canStart || loading}
                   >
                     Start AI trading
                     <ArrowIcon />
                   </button>
-                  {!canStart && (
-                    <Link className="btn btn-ghost btn-lg" to="/app/deposit">
-                      Add money
-                    </Link>
-                  )}
                 </div>
-              </>
+              </form>
             )}
           </div>
         )}

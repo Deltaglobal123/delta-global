@@ -54,6 +54,26 @@ export function validateAmount(value: string, ceilingPaise?: number): string | u
   return undefined
 }
 
+export const MIN_TRADE_PAISE = 49900 // ₹499.00
+
+/**
+ * The client-side amount validator for AI trading runs.
+ */
+export function validateTradeAmount(value: string, availablePaise: number): string | undefined {
+  const trimmed = value.trim()
+  if (!trimmed) return 'Enter the amount you want to trade.'
+  if (!AMOUNT_RE.test(trimmed))
+    return 'Use digits only, up to two decimals — no commas or symbols.'
+
+  const paise = inputToPaise(trimmed)
+  if (paise === null || paise < MIN_TRADE_PAISE)
+    return 'The minimum amount to trade is ₹499.00.'
+  if (paise > availablePaise)
+    return `You can trade up to ${formatPaise(availablePaise)} right now.`
+
+  return undefined
+}
+
 const DATE = new Intl.DateTimeFormat('en-IN', {
   day: 'numeric',
   month: 'short',
