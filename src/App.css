@@ -3209,6 +3209,58 @@
   max-width: 40ch;
 }
 
+.qr-support,
+.withdraw-support {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: rgba(46, 230, 168, 0.04);
+  border: 1px solid rgba(46, 230, 168, 0.18);
+  margin-top: 6px;
+  text-align: center;
+}
+
+.qr-support-text,
+.withdraw-support-text {
+  font-size: 13px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.support-whatsapp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 280px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #25D366;
+  color: #031c0e;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.22);
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.support-whatsapp-btn:hover {
+  background: #20ba5a;
+  color: #021209;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.35);
+}
+
+.whatsapp-btn-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
 /* =============================== withdrawals ============================= */
 
 .withdraw-layout {
@@ -3228,6 +3280,10 @@
 .withdraw-aside h2 {
   margin-bottom: 22px;
   font-size: 18px;
+}
+
+.withdraw-support {
+  margin-top: 24px;
 }
 
 .amount-field {

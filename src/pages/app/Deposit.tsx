@@ -8,7 +8,8 @@ import { AppPageHead } from '../../components/app/AppPageHead'
 import { AppSection } from '../../components/app/AppSection'
 import { Pager } from '../../components/app/Pager'
 import { StatusPill } from '../../components/app/StatusPill'
-import { QrIcon } from '../../components/app/app-icons'
+import { QrIcon, WhatsAppIcon } from '../../components/app/app-icons'
+import { getWhatsAppSupportUrl } from '../../lib/support'
 
 const MAX_SCREENSHOT = 4 * 1024 * 1024
 
@@ -181,6 +182,18 @@ export function Deposit() {
                 Pay whatever you like, then fill in the form with the exact
                 reference your UPI app gave you.
               </p>
+              <div className="qr-support">
+                <span className="qr-support-text">Facing any issue or need assistance?</span>
+                <a
+                  href={getWhatsAppSupportUrl('Hello Delta Global Support, I need help with my deposit.')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="support-whatsapp-btn"
+                >
+                  <WhatsAppIcon className="whatsapp-btn-icon" />
+                  <span>Contact Support on WhatsApp</span>
+                </a>
+              </div>
             </div>
           ) : (
             <div className="qr-unavailable">
@@ -190,6 +203,17 @@ export function Deposit() {
                 No payment code has been published yet. Please check back shortly
                 or get in touch.
               </p>
+              <div className="qr-support">
+                <a
+                  href={getWhatsAppSupportUrl('Hello Delta Global Support, I need help with making a deposit.')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="support-whatsapp-btn"
+                >
+                  <WhatsAppIcon className="whatsapp-btn-icon" />
+                  <span>Contact Support on WhatsApp</span>
+                </a>
+              </div>
             </div>
           )}
         </AppSection>

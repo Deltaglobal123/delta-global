@@ -10,6 +10,8 @@ import { AppPageHead } from '../../components/app/AppPageHead'
 import { AppSection } from '../../components/app/AppSection'
 import { Pager } from '../../components/app/Pager'
 import { StatusPill } from '../../components/app/StatusPill'
+import { WhatsAppIcon } from '../../components/app/app-icons'
+import { getWhatsAppSupportUrl } from '../../lib/support'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const MOBILE_RE = /^\+?\d{10,20}$/
@@ -268,6 +270,19 @@ export function Withdraw() {
               </div>
             </li>
           </ol>
+
+          <div className="withdraw-support">
+            <span className="withdraw-support-text">Need help with your payout?</span>
+            <a
+              href={getWhatsAppSupportUrl('Hello Delta Global Support, I need help with my withdrawal.')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="support-whatsapp-btn"
+            >
+              <WhatsAppIcon className="whatsapp-btn-icon" />
+              <span>Contact Support on WhatsApp</span>
+            </a>
+          </div>
         </aside>
       </div>
 
