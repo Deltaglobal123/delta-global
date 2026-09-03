@@ -5,6 +5,10 @@
       "destination": "https://deltaglobal-backend.onrender.com/api/:path*"
     },
     {
+      "source": "/admin",
+      "destination": "https://deltaglobal-backend.onrender.com/admin"
+    },
+    {
       "source": "/admin/:path*",
       "destination": "https://deltaglobal-backend.onrender.com/admin/:path*"
     }
