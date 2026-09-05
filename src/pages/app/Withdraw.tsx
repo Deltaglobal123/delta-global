@@ -4,13 +4,18 @@ import { api, ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth-context'
 import { useStatus } from '../../lib/status-context'
 import { useList } from '../../lib/useList'
-import { formatDate, paiseToInput, validateAmount } from '../../lib/money'
-import type { Wallet, Withdrawal } from '../../lib/types'
+import { formatPaise, formatDate, paiseToInput, validateAmount } from '../../lib/money'
+import type { Wallet, Withdrawal, WithdrawalChargeNotice } from '../../lib/types'
 import { AppPageHead } from '../../components/app/AppPageHead'
 import { AppSection } from '../../components/app/AppSection'
 import { Pager } from '../../components/app/Pager'
 import { StatusPill } from '../../components/app/StatusPill'
 import { WhatsAppIcon } from '../../components/app/app-icons'
+import {
+  WithdrawalChargeModal,
+  type ChargeErrors,
+  type ChargePayment,
+} from '../../components/app/WithdrawalChargeModal'
 import { getWhatsAppSupportUrl } from '../../lib/support'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
@@ -50,9 +55,86 @@ export function Withdraw() {
   const [sent, setSent] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
+  // The charge popup, quoted at submit time so its percentage lines are always
+  // worked out against the amount the customer actually settled on. Null means
+  // the desk is collecting nothing today and the form posts straight through.
+  const [notice, setNotice] = useState<WithdrawalChargeNotice | null>(null)
+  const [chargeErrors, setChargeErrors] = useState<ChargeErrors>({})
+  const [chargeAlert, setChargeAlert] = useState<string | null>(null)
+
   function set<K extends keyof Fields>(key: K, value: Fields[K]) {
     setFields((prev) => ({ ...prev, [key]: value }))
     setErrors((prev) => ({ ...prev, [key]: undefined }))
+  }
+
+  /** Maps a 422 onto the payout fields and the popup fields at once. */
+  function spreadErrors(caught: ApiError) {
+    const flat = Object.fromEntries(
+      Object.entries(caught.errors).map(([key, list]) => [key, list[0]]),
+    )
+    setErrors(flat as Errors)
+    setChargeErrors(flat as ChargeErrors)
+  }
+
+  /**
+   * Posts the payout, with the proof of charge payment attached when there was
+   * a popup to answer. Multipart only when a screenshot actually rides along.
+   */
+  async function post(charge: ChargePayment | null) {
+    setBusy(true)
+    setAlert(null)
+    setChargeAlert(null)
+
+    const payout: Record<string, string> = {
+      amount: fields.amount.trim(),
+      name: fields.name.trim(),
+      email: fields.email.trim(),
+      mobile_number: fields.mobile_number.replace(/[\s-]/g, ''),
+      upi_id: fields.upi_id.trim(),
+    }
+
+    if (charge) {
+      payout.charge_upi_id = charge.charge_upi_id
+      if (charge.charge_reference) payout.charge_reference = charge.charge_reference
+      if (charge.charge_paid_at) payout.charge_paid_at = charge.charge_paid_at
+    }
+
+    let body: FormData | Record<string, string> = payout
+    if (charge?.screenshot) {
+      const form = new FormData()
+      for (const [key, value] of Object.entries(payout)) form.append(key, value)
+      form.append('charge_screenshot', charge.screenshot)
+      body = form
+    }
+
+    try {
+      const response = await api.post<{
+        data: Withdrawal
+        wallet: Wallet
+        message: string
+      }>('/withdrawals', body)
+
+      setSent(response.message)
+      setFields((prev) => ({ ...prev, amount: '' }))
+      setNotice(null)
+      setChargeErrors({})
+      history.reload()
+      refresh()
+    } catch (caught) {
+      if (caught instanceof ApiError) {
+        spreadErrors(caught)
+        // A 422 leaves nothing behind, but the customer may already have paid
+        // the charges — so the popup stays open with its fields intact.
+        if (notice) setChargeAlert(caught.message)
+        else setAlert(caught.message)
+      } else if (notice) {
+        setChargeAlert('Something went wrong. Please try again.')
+      } else {
+        setAlert('Something went wrong. Please try again.')
+      }
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -78,37 +160,40 @@ export function Withdraw() {
     }
 
     setBusy(true)
+    let quote: WithdrawalChargeNotice | null
     try {
-      const response = await api.post<{
-        data: Withdrawal
-        wallet: Wallet
-        message: string
-      }>('/withdrawals', {
-        amount: fields.amount.trim(),
-        name: fields.name.trim(),
-        email: fields.email.trim(),
-        mobile_number: fields.mobile_number.replace(/[\s-]/g, ''),
-        upi_id: fields.upi_id.trim(),
-      })
-
-      setSent(response.message)
-      setFields((prev) => ({ ...prev, amount: '' }))
-      history.reload()
-      refresh()
+      const response = await api.get<{ data: WithdrawalChargeNotice | null }>(
+        `/withdrawals/charges?amount=${encodeURIComponent(fields.amount.trim())}`,
+      )
+      quote = response.data
     } catch (caught) {
-      if (caught instanceof ApiError) {
-        setAlert(caught.message)
-        setErrors(
-          Object.fromEntries(
-            Object.entries(caught.errors).map(([key, list]) => [key, list[0]]),
-          ) as Errors,
-        )
-      } else {
-        setAlert('Something went wrong. Please try again.')
-      }
-    } finally {
+      setAlert(
+        caught instanceof ApiError
+          ? caught.message
+          : 'Something went wrong. Please try again.',
+      )
       setBusy(false)
+      return
     }
+
+    // `data: null` is a normal answer, not a failure: it means nothing is being
+    // collected, so the form behaves exactly as it did before the popup existed.
+    // Busy stays on through to the post so the button never flickers back.
+    if (!quote) {
+      await post(null)
+      return
+    }
+
+    setBusy(false)
+    setChargeErrors({})
+    setChargeAlert(null)
+    setNotice(quote)
+  }
+
+  function cancelCharges() {
+    setNotice(null)
+    setChargeErrors({})
+    setChargeAlert(null)
   }
 
   return (
@@ -237,7 +322,7 @@ export function Withdraw() {
               type="submit"
               disabled={busy || available <= 0}
             >
-              {busy ? 'Submitting…' : 'Request withdrawal'}
+              {busy ? 'Checking…' : 'Request withdrawal'}
             </button>
           </form>
         </AppSection>
@@ -303,6 +388,7 @@ export function Withdraw() {
                 <tr>
                   <th scope="col">Requested</th>
                   <th scope="col">Amount</th>
+                  <th scope="col">Charges paid</th>
                   <th scope="col">UPI ID</th>
                   <th scope="col">Transfer ref</th>
                   <th scope="col">Status</th>
@@ -313,6 +399,16 @@ export function Withdraw() {
                   <tr key={payout.id}>
                     <td>{formatDate(payout.created_at)}</td>
                     <td className="num-strong">{payout.amount}</td>
+                    {/* Frozen at submission: a later change to the charges does
+                        not rewrite what this customer was asked to pay. */}
+                    <td>
+                      {payout.charge_total ?? '—'}
+                      {payout.charge_breakdown && (
+                        <p className="row-note">
+                          {payout.charge_breakdown.map((line) => line.title).join(' · ')}
+                        </p>
+                      )}
+                    </td>
                     <td className="mono">{payout.upi_id}</td>
                     <td className="mono">{payout.payment_reference ?? '—'}</td>
                     <td>
@@ -332,6 +428,18 @@ export function Withdraw() {
         )}
         <Pager meta={history.meta} page={history.page} onPage={history.setPage} />
       </AppSection>
+
+      {notice && (
+        <WithdrawalChargeModal
+          notice={notice}
+          amountLabel={formatPaise(notice.withdrawal_amount_paise)}
+          busy={busy}
+          errors={chargeErrors}
+          alert={chargeAlert}
+          onCancel={cancelCharges}
+          onConfirm={(payment) => void post(payment)}
+        />
+      )}
     </div>
   )
 }

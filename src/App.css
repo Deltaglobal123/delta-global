@@ -3411,6 +3411,194 @@
   color: var(--text-dim);
 }
 
+/* ============================== charge popup ============================= */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(2, 4, 8, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: modal-fade 0.2s ease;
+}
+
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 620px;
+  /* The dialog itself never scrolls — only its body does — so the heading and
+     the confirm button stay reachable however long the bill grows. */
+  max-height: min(880px, calc(100vh - 48px));
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-soft);
+  box-shadow: var(--shadow-md);
+  animation: modal-rise 0.25s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes modal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px clamp(20px, 3vw, 28px) 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-head h2 {
+  margin-top: 6px;
+  font-size: 21px;
+  line-height: 1.25;
+  color: var(--text-strong);
+}
+
+.modal-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.modal-close {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.modal-close:hover:not(:disabled) {
+  color: var(--text-strong);
+  border-color: var(--border-strong);
+}
+
+.modal-close:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  padding: 22px clamp(20px, 3vw, 28px);
+}
+
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 18px clamp(20px, 3vw, 28px);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.charge-lead {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.charge-pay {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.charge-pay .qr-image {
+  max-width: 220px;
+}
+
+.charge-pay .detail-grid {
+  border-top: 0;
+  padding-top: 0;
+  justify-items: center;
+  text-align: center;
+}
+
+.charge-lines {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.charge-lines li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.charge-lines li:last-child {
+  border-bottom: 0;
+}
+
+.charge-lines strong {
+  display: block;
+  font-size: 15px;
+  color: var(--text-strong);
+}
+
+.charge-lines span {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.charge-amount {
+  flex: 0 0 auto;
+  font-size: 15px !important;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong) !important;
+}
+
+.charge-total {
+  background: var(--accent-soft);
+}
+
+.charge-total .charge-amount {
+  font-size: 18px !important;
+  color: var(--accent) !important;
+}
+
+.charge-support {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
 /* =============================== responsive ============================== */
 
 @media (max-width: 1080px) {
@@ -3479,6 +3667,28 @@
 }
 
 @media (max-width: 560px) {
+  .modal-backdrop {
+    /* Edge to edge on a phone: a 620px dialog inside a 24px gutter wastes the
+       little width there is. */
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal {
+    max-height: 100vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-inline: 0;
+    border-bottom: 0;
+  }
+
+  .modal-foot {
+    border-radius: 0;
+  }
+
+  .modal-foot .btn {
+    flex: 1;
+  }
+
   .app-page-head {
     align-items: flex-start;
   }

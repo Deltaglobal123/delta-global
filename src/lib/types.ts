@@ -72,6 +72,45 @@ export type Trading = {
   created_at: string
 }
 
+export type ChargeType = 'fixed' | 'percent'
+
+/**
+ * One line of the withdrawal charge bill, already worked out against the amount
+ * being withdrawn. `amount` is only sent by the live quote — the snapshot kept
+ * on a past withdrawal carries `amount_paise` alone, so format that yourself.
+ */
+export type WithdrawalChargeItem = {
+  id: number
+  title: string
+  description: string | null
+  type: ChargeType
+  /** Pre-rendered explanation: `₹49.00` or `18% of the withdrawal`. */
+  rule: string
+  percent: number | null
+  amount_paise: number
+  amount?: string
+}
+
+/**
+ * The popup shown before a payout is accepted. Every string in it is written by
+ * the admin and changes without a frontend deploy, so none of it is ever
+ * substituted for wording of our own.
+ */
+export type WithdrawalChargeNotice = {
+  id: number
+  title: string
+  body: string | null
+  confirm_label: string
+  upi_id: string | null
+  qr_image_url: string
+  /** Echoes the amount the lines below were quoted against. */
+  withdrawal_amount_paise: number
+  items: WithdrawalChargeItem[]
+  total_paise: number
+  total: string
+  updated_at: string | null
+}
+
 export type WithdrawalStatus = 'pending' | 'approved' | 'paid' | 'rejected'
 
 export type Withdrawal = {
@@ -85,6 +124,14 @@ export type Withdrawal = {
   email: string
   mobile_number: string
   upi_id: string
+  /** Null on payouts taken while no charges were being collected. */
+  charge_total_paise: number | null
+  charge_total: string | null
+  charge_breakdown: WithdrawalChargeItem[] | null
+  charge_upi_id: string | null
+  charge_reference: string | null
+  charge_screenshot_url: string | null
+  charge_paid_at: string | null
   admin_note: string | null
   payment_reference: string | null
   approved_at: string | null
