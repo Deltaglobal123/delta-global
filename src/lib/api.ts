@@ -134,6 +134,28 @@ async function send(path: string, options: Options): Promise<Response> {
   }
 }
 
+/**
+ * What to say when a rate limit trips. The API's own wording is "Too Many
+ * Attempts.", which tells the customer nothing about when to come back, so the
+ * wait from `Retry-After` is spelled out instead.
+ *
+ * The header only reaches us because the API lists it in `exposed_headers` —
+ * it is not CORS-safelisted. If that is ever removed this reads as null and
+ * falls back to the vaguer sentence rather than breaking.
+ */
+function retryMessage(response: Response): string {
+  const seconds = Number(response.headers.get('Retry-After'))
+
+  if (!Number.isFinite(seconds) || seconds <= 0)
+    return 'Too many attempts. Please wait a moment and try again.'
+
+  if (seconds < 60)
+    return `Too many attempts. Please try again in ${Math.ceil(seconds)} seconds.`
+
+  const minutes = Math.ceil(seconds / 60)
+  return `Too many attempts. Please try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`
+}
+
 /** Turns a fetch rejection into the ApiError the UI knows how to show. */
 function asApiError(error: unknown, signal?: AbortSignal): Error {
   // A caller-initiated abort is not a failure — let it propagate untouched.
@@ -206,7 +228,9 @@ export async function request<T>(path: string, options: Options = {}): Promise<T
     if (response.status === 401 && options.auth !== false) announceExpiry()
     throw new ApiError(
       response.status,
-      payload?.message ?? 'Something went wrong. Please try again.',
+      response.status === 429
+        ? retryMessage(response)
+        : (payload?.message ?? 'Something went wrong. Please try again.'),
       payload?.errors ?? {},
     )
   }

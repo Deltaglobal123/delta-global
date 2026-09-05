@@ -128,10 +128,6 @@ export type Withdrawal = {
   charge_total_paise: number | null
   charge_total: string | null
   charge_breakdown: WithdrawalChargeItem[] | null
-  charge_upi_id: string | null
-  charge_reference: string | null
-  charge_screenshot_url: string | null
-  charge_paid_at: string | null
   admin_note: string | null
   payment_reference: string | null
   approved_at: string | null

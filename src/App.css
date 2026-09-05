@@ -3575,6 +3575,16 @@
   color: var(--text-dim);
 }
 
+/* A row can carry both a description and a rule, so the sub-labels stack
+   under the title rather than running together on one line. */
+.charge-lines div span {
+  display: block;
+}
+
+.charge-rule {
+  font-variant-numeric: tabular-nums;
+}
+
 .charge-amount {
   flex: 0 0 auto;
   font-size: 15px !important;

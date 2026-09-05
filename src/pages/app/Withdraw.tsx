@@ -11,11 +11,7 @@ import { AppSection } from '../../components/app/AppSection'
 import { Pager } from '../../components/app/Pager'
 import { StatusPill } from '../../components/app/StatusPill'
 import { WhatsAppIcon } from '../../components/app/app-icons'
-import {
-  WithdrawalChargeModal,
-  type ChargeErrors,
-  type ChargePayment,
-} from '../../components/app/WithdrawalChargeModal'
+import { WithdrawalChargeModal } from '../../components/app/WithdrawalChargeModal'
 import { getWhatsAppSupportUrl } from '../../lib/support'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
@@ -59,76 +55,56 @@ export function Withdraw() {
   // worked out against the amount the customer actually settled on. Null means
   // the desk is collecting nothing today and the form posts straight through.
   const [notice, setNotice] = useState<WithdrawalChargeNotice | null>(null)
-  const [chargeErrors, setChargeErrors] = useState<ChargeErrors>({})
-  const [chargeAlert, setChargeAlert] = useState<string | null>(null)
+
+  // Set once the customer has tapped through the popup. The bill is paid by
+  // hand outside the app, so showing it a second time — after a validation
+  // error, say — would read as being charged twice. Editing the amount clears
+  // it, because a different payout is a different bill.
+  const [acknowledged, setAcknowledged] = useState(false)
 
   function set<K extends keyof Fields>(key: K, value: Fields[K]) {
     setFields((prev) => ({ ...prev, [key]: value }))
     setErrors((prev) => ({ ...prev, [key]: undefined }))
-  }
-
-  /** Maps a 422 onto the payout fields and the popup fields at once. */
-  function spreadErrors(caught: ApiError) {
-    const flat = Object.fromEntries(
-      Object.entries(caught.errors).map(([key, list]) => [key, list[0]]),
-    )
-    setErrors(flat as Errors)
-    setChargeErrors(flat as ChargeErrors)
+    if (key === 'amount') setAcknowledged(false)
   }
 
   /**
-   * Posts the payout, with the proof of charge payment attached when there was
-   * a popup to answer. Multipart only when a screenshot actually rides along.
+   * Posts the payout. The popup collects nothing, so this is the same request
+   * the form has always sent — the server snapshots whichever notice was live
+   * onto the record by itself.
    */
-  async function post(charge: ChargePayment | null) {
+  async function post() {
     setBusy(true)
     setAlert(null)
-    setChargeAlert(null)
-
-    const payout: Record<string, string> = {
-      amount: fields.amount.trim(),
-      name: fields.name.trim(),
-      email: fields.email.trim(),
-      mobile_number: fields.mobile_number.replace(/[\s-]/g, ''),
-      upi_id: fields.upi_id.trim(),
-    }
-
-    if (charge) {
-      payout.charge_upi_id = charge.charge_upi_id
-      if (charge.charge_reference) payout.charge_reference = charge.charge_reference
-      if (charge.charge_paid_at) payout.charge_paid_at = charge.charge_paid_at
-    }
-
-    let body: FormData | Record<string, string> = payout
-    if (charge?.screenshot) {
-      const form = new FormData()
-      for (const [key, value] of Object.entries(payout)) form.append(key, value)
-      form.append('charge_screenshot', charge.screenshot)
-      body = form
-    }
+    // However this turns out, the bill has been seen and is not shown again.
+    setNotice(null)
 
     try {
       const response = await api.post<{
         data: Withdrawal
         wallet: Wallet
         message: string
-      }>('/withdrawals', body)
+      }>('/withdrawals', {
+        amount: fields.amount.trim(),
+        name: fields.name.trim(),
+        email: fields.email.trim(),
+        mobile_number: fields.mobile_number.replace(/[\s-]/g, ''),
+        upi_id: fields.upi_id.trim(),
+      })
 
       setSent(response.message)
       setFields((prev) => ({ ...prev, amount: '' }))
-      setNotice(null)
-      setChargeErrors({})
+      setAcknowledged(false)
       history.reload()
       refresh()
     } catch (caught) {
       if (caught instanceof ApiError) {
-        spreadErrors(caught)
-        // A 422 leaves nothing behind, but the customer may already have paid
-        // the charges — so the popup stays open with its fields intact.
-        if (notice) setChargeAlert(caught.message)
-        else setAlert(caught.message)
-      } else if (notice) {
-        setChargeAlert('Something went wrong. Please try again.')
+        setAlert(caught.message)
+        setErrors(
+          Object.fromEntries(
+            Object.entries(caught.errors).map(([key, list]) => [key, list[0]]),
+          ) as Errors,
+        )
       } else {
         setAlert('Something went wrong. Please try again.')
       }
@@ -159,6 +135,13 @@ export function Withdraw() {
       return
     }
 
+    // Already tapped through the bill for this amount — go straight to the post
+    // rather than quoting and showing it a second time.
+    if (acknowledged) {
+      await post()
+      return
+    }
+
     setBusy(true)
     let quote: WithdrawalChargeNotice | null
     try {
@@ -180,20 +163,12 @@ export function Withdraw() {
     // collected, so the form behaves exactly as it did before the popup existed.
     // Busy stays on through to the post so the button never flickers back.
     if (!quote) {
-      await post(null)
+      await post()
       return
     }
 
     setBusy(false)
-    setChargeErrors({})
-    setChargeAlert(null)
     setNotice(quote)
-  }
-
-  function cancelCharges() {
-    setNotice(null)
-    setChargeErrors({})
-    setChargeAlert(null)
   }
 
   return (
@@ -403,11 +378,14 @@ export function Withdraw() {
                         not rewrite what this customer was asked to pay. */}
                     <td>
                       {payout.charge_total ?? '—'}
-                      {payout.charge_breakdown && (
-                        <p className="row-note">
-                          {payout.charge_breakdown.map((line) => line.title).join(' · ')}
+                      {/* The snapshot carries `amount_paise` but no formatted
+                          twin, unlike the live quote — so these are formatted
+                          here. The total above already arrives as a string. */}
+                      {payout.charge_breakdown?.map((line) => (
+                        <p className="row-note" key={line.id}>
+                          {line.title} {formatPaise(line.amount_paise)}
                         </p>
-                      )}
+                      ))}
                     </td>
                     <td className="mono">{payout.upi_id}</td>
                     <td className="mono">{payout.payment_reference ?? '—'}</td>
@@ -432,12 +410,17 @@ export function Withdraw() {
       {notice && (
         <WithdrawalChargeModal
           notice={notice}
+          // The quote echoes back the amount it was worked out against, so the
+          // popup always names the payout the customer actually asked for —
+          // never a fixed figure.
           amountLabel={formatPaise(notice.withdrawal_amount_paise)}
           busy={busy}
-          errors={chargeErrors}
-          alert={chargeAlert}
-          onCancel={cancelCharges}
-          onConfirm={(payment) => void post(payment)}
+          alert={alert}
+          onCancel={() => setNotice(null)}
+          onContinue={() => {
+            setAcknowledged(true)
+            void post()
+          }}
         />
       )}
     </div>
