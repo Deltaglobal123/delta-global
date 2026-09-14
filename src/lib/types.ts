@@ -173,6 +173,10 @@ export type Status = {
   pending_withdrawals: Withdrawal[]
   is_waiting: boolean
   can_start_trading: boolean
+  settings?: {
+    whatsapp_number?: string | null
+    whatsapp_url?: string | null
+  }
 }
 
 export type Paginated<T> = {

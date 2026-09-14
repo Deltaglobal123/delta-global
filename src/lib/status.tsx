@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { api } from './api'
 import { StatusContext } from './status-context'
 import type { Status } from './types'
+import { setDynamicWhatsAppNumber } from './support'
 
 /**
  * Every money flow ends with an admin pressing a button, so the app is always
@@ -24,6 +25,9 @@ export function StatusProvider({ children }: { children: ReactNode }) {
       const response = await api.get<{ data: Status }>('/status', signal)
       if (signal?.aborted) return
       setStatus(response.data)
+      if (response.data?.settings?.whatsapp_number !== undefined) {
+        setDynamicWhatsAppNumber(response.data.settings.whatsapp_number)
+      }
       waitingRef.current = response.data.is_waiting
       setError(null)
     } catch (caught) {
