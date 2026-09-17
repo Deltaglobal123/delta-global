@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { CONTACT } from '../data'
 import { PageHeader } from '../components/PageHeader'
-import { Placeholder } from '../components/Placeholder'
 
 const DETAILS = [
   { label: 'Email', value: CONTACT.email, href: CONTACT.email ? `mailto:${CONTACT.email}` : '' },
@@ -12,17 +11,6 @@ const DETAILS = [
   },
   { label: 'Registered address', value: CONTACT.address, href: '' },
 ].filter((item) => item.value)
-
-/** Which details the deployment has not supplied yet, for the reviewer note. */
-const MISSING = (
-  [
-    ['a support email', CONTACT.email],
-    ['a phone number', CONTACT.phone],
-    ['the registered office address', CONTACT.address],
-  ] as const
-)
-  .filter(([, value]) => !value)
-  .map(([label]) => label)
 
 export function Contact() {
   return (
@@ -51,13 +39,6 @@ export function Contact() {
           </dl>
 
           <div className="contact-side">
-            {MISSING.length > 0 && (
-              <Placeholder
-                label="Missing contact details"
-                hint={`Still to be set in the deployment environment: ${MISSING.join(', ')}. A finance site without these reads as untrustworthy — and in India the address and CIN are required disclosures.`}
-              />
-            )}
-
             <div className="note-card">
               <h2>Complaints</h2>
               <p>

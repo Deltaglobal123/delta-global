@@ -2,7 +2,6 @@ import type { CSSProperties } from 'react'
 import { PERFORMANCE } from '../data'
 import { DrawdownArt } from '../art'
 import { SectionHead } from '../components/SectionHead'
-import { Placeholder } from '../components/Placeholder'
 import { useReveal } from '../useReveal'
 
 function Metric({
@@ -49,11 +48,6 @@ export function Performance() {
             <Metric key={metric.title} metric={metric} index={i} />
           ))}
         </ul>
-
-        <Placeholder
-          label="Actual performance figures"
-          hint="These five metrics are definitions, not results. Publish a real number against each only with its methodology, timeframe, instrument set, fee treatment and whether it is live or backtested stated alongside it."
-        />
 
         <p className="disclaimer-note">{PERFORMANCE.disclaimer}</p>
       </div>

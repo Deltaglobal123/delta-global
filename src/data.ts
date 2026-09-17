@@ -2,8 +2,8 @@
  * All page copy lives here so components stay presentational.
  *
  * Marketing text is reproduced verbatim from the Delta Global Operations site.
- * Anything that needs a real-world fact the site did not provide is left as a
- * <Placeholder> slot in the page rather than invented here.
+ * Anything that needs a real-world fact the site did not provide is left out
+ * rather than invented here.
  */
 
 /* --------------------------------- routing -------------------------------- */
@@ -378,12 +378,6 @@ export const PERFORMANCE = {
   ] satisfies Card[],
   disclaimer:
     'Past performance and backtested results are not indicative of future performance. Actual trading results may differ significantly.',
-}
-
-export const TESTIMONIALS = {
-  badge: 'What users say',
-  heading: 'Built for traders who value clarity',
-  body: 'Only quotes from real customers who have given written permission to be named belong here.',
 }
 
 export const RESPONSIBLE = {

@@ -12,7 +12,6 @@ import { WhyUs } from '../sections/WhyUs'
 import { Security } from '../sections/Security'
 import { Awards } from '../sections/Awards'
 import { Performance } from '../sections/Performance'
-import { Testimonials } from '../sections/Testimonials'
 import { Plans } from '../sections/Plans'
 import { Faq } from '../sections/Faq'
 import { Responsible } from '../sections/Responsible'
@@ -74,7 +73,6 @@ export function Home() {
       <Security />
       <PlansPreview />
       <Performance />
-      <Testimonials />
       <Faq />
       <Responsible />
       <CtaBand />

@@ -1,7 +1,6 @@
 import { ABOUT, FOUNDER } from '../data'
 import { GrowthArt, QuoteIcon } from '../icons'
 import { PageHeader } from '../components/PageHeader'
-import { Placeholder } from '../components/Placeholder'
 import { CtaBand } from '../sections/CtaBand'
 import { useReveal } from '../useReveal'
 
@@ -43,38 +42,6 @@ function Philosophy() {
   )
 }
 
-function Team() {
-  return (
-    <section className="section">
-      <div className="shell">
-        <div className="section-head">
-          <span className="eyebrow">The team</span>
-          <h2>The people behind the work</h2>
-          <p>
-            "A group of career strategists, coaches, and industry professionals"
-            — this section should name them.
-          </p>
-        </div>
-
-        <div className="proof-grid">
-          <Placeholder
-            label="Team members"
-            hint="Name, role, photo and a one-line background for each person. Link their LinkedIn so a visitor can verify them."
-          />
-          <Placeholder
-            label="Company facts"
-            hint="Registered entity name, incorporation date, CIN, office address, headcount."
-          />
-          <Placeholder
-            label="Licences and memberships"
-            hint="Any regulatory registration, exchange membership or professional body. Include the registration numbers."
-          />
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function FounderCard() {
   const ref = useReveal<HTMLDivElement>()
 
@@ -104,11 +71,6 @@ function FounderCard() {
               </div>
             ))}
           </dl>
-
-          <Placeholder
-            label="Verify this attribution before launch"
-            hint="This card names a real public figure as a co-founder of Delta Global Operations. Publish it only with documented authorisation from him; otherwise remove the section."
-          />
         </figure>
       </div>
     </section>
@@ -124,7 +86,6 @@ export function About() {
         lead={ABOUT.lead}
       />
       <Philosophy />
-      <Team />
       <FounderCard />
       <CtaBand />
     </>
