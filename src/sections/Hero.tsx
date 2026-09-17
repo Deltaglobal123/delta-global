@@ -4,7 +4,6 @@ import { HERO, HERO_STATS } from '../data'
 import { HeroArt } from '../art'
 import { ArrowIcon, CheckIcon } from '../icons'
 import { useReveal } from '../useReveal'
-import { useWhatsAppSupportUrl } from '../lib/support'
 
 function Stat({
   stat,
@@ -29,8 +28,6 @@ function Stat({
 }
 
 export function Hero() {
-  const startProjectWhatsAppUrl = useWhatsAppSupportUrl('Hello Delta Global, I would like to start a project.')
-
   return (
     <section className="hero">
       <div className="hero-glow" aria-hidden="true" />
@@ -51,7 +48,10 @@ export function Hero() {
         ))}
 
         <div className="hero-actions">
-          <Link className="btn btn-primary btn-lg" to="/get-started">
+          {/* Straight into the trading flow. A signed-out visitor is bounced to
+              /login by RequireAuth, which carries this path along so the sign-in
+              lands them back here rather than on the dashboard. */}
+          <Link className="btn btn-primary btn-lg" to="/app/trading">
             Start trading
             <ArrowIcon />
           </Link>
@@ -59,15 +59,12 @@ export function Hero() {
             Explore how it works
             <ArrowIcon />
           </Link>
-          <a
-            className="btn btn-primary btn-lg"
-            href={startProjectWhatsAppUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          {/* Same guard as "Start trading": a signed-out visitor is sent to
+              /login and lands back here once they are in. */}
+          <Link className="btn btn-primary btn-lg" to="/app/start">
             Start project
             <ArrowIcon />
-          </a>
+          </Link>
         </div>
 
         <ul className="trust">

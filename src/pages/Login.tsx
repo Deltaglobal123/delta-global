@@ -80,7 +80,12 @@ export function Login() {
       footer={
         <>
           <p className="auth-alt">
-            New to Delta Global? <Link to="/register">Create an account</Link>
+            New to Delta Global?{' '}
+            {/* Keeps the intended destination alive across the detour, so
+                signing up from here lands where signing in would have. */}
+            <Link to="/register" state={{ from }}>
+              Create an account
+            </Link>
           </p>
           <p className="auth-note">
             Admin and manager accounts are sent to the staff panel automatically.

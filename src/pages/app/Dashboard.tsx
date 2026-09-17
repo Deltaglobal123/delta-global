@@ -1,13 +1,24 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth-context'
 import { useStatus } from '../../lib/status-context'
-import { formatDate } from '../../lib/money'
+import { formatDate, formatPaise } from '../../lib/money'
 import { AppPageHead } from '../../components/app/AppPageHead'
 import { AppSection } from '../../components/app/AppSection'
 import { EmptyState } from '../../components/app/EmptyState'
 import { StatusPill } from '../../components/app/StatusPill'
 import { WalletSummary } from '../../components/app/WalletSummary'
 import { ArrowIcon } from '../../icons'
+import { ClockIcon } from '../../components/app/app-icons'
+
+/** "1 payout" / "2 payouts" — the banner reads as a sentence either way. */
+function plural(count: number, noun: string) {
+  return count === 1 ? `1 ${noun}` : `${count} ${noun}s`
+}
+
+/** Totals a list of requests back into a formatted amount. */
+function sum(items: { amount_paise: number }[]) {
+  return formatPaise(items.reduce((total, item) => total + item.amount_paise, 0))
+}
 
 export function Dashboard() {
   const { user } = useAuth()
@@ -17,6 +28,18 @@ export function Dashboard() {
   const trade = status?.active_trade ?? null
   const deposits = status?.pending_deposits ?? []
   const withdrawals = status?.pending_withdrawals ?? []
+
+  /**
+   * Name what the desk is holding. A banner that only says "something of yours"
+   * leaves the customer hunting down the page for the row it means.
+   */
+  const waitingFor = [
+    deposits.length > 0 &&
+      `${plural(deposits.length, 'deposit')} of ${sum(deposits)} awaiting verification.`,
+    trade && `Your trading run of ${trade.amount} is with the desk.`,
+    withdrawals.length > 0 &&
+      `${plural(withdrawals.length, 'payout')} of ${sum(withdrawals)} awaiting approval.`,
+  ].filter((line): line is string => Boolean(line))
 
   return (
     <div className="app-page">
@@ -47,12 +70,13 @@ export function Dashboard() {
 
       {status?.is_waiting && (
         <div className="waiting-banner" role="status">
-          <span className="spinner" aria-hidden="true" />
+          <ClockIcon className="waiting-icon" />
           <div>
             <strong>We are on it.</strong>
             <p>
-              Something of yours is with our team. This page updates itself —
-              you do not need to refresh.
+              {waitingFor.length > 0
+                ? `${waitingFor.join(' ')} This page updates itself — you do not need to refresh.`
+                : 'Something of yours is with our team. This page updates itself — you do not need to refresh.'}
             </p>
           </div>
         </div>

@@ -765,9 +765,37 @@ export const REFUNDS: LegalDoc = {
 
 /* --------------------------------- contact -------------------------------- */
 
+/**
+ * Contact details come from the deployment environment so they can be corrected
+ * without a code change. The WhatsApp support line doubles as the published
+ * phone number when no separate one is configured. Anything still unknown stays
+ * empty and is simply not rendered, so no placeholder text reaches a visitor.
+ */
+function firstSet(...values: (string | undefined)[]) {
+  for (const value of values) {
+    const trimmed = value?.trim()
+    if (trimmed) return trimmed
+  }
+  return ''
+}
+
+/** 917734897456 reads as +91 77348 97456; anything else is left alone. */
+function formatPhone(raw: string) {
+  const digits = raw.replace(/[^\d]/g, '')
+  if (!digits) return ''
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`
+  }
+  return raw.startsWith('+') ? raw : `+${digits}`
+}
+
 export const CONTACT = {
-  email: '[support email]',
-  phone: '[phone number]',
-  hours: '[e.g. Mon–Sat, 10:00–19:00 IST]',
-  address: '[registered address, city, state, PIN]',
+  email: firstSet(import.meta.env.VITE_SUPPORT_EMAIL),
+  phone: formatPhone(
+    firstSet(
+      import.meta.env.VITE_SUPPORT_PHONE,
+      import.meta.env.VITE_WHATSAPP_NUMBER,
+    ),
+  ),
+  address: firstSet(import.meta.env.VITE_REGISTERED_ADDRESS),
 }

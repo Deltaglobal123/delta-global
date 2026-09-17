@@ -4,14 +4,13 @@ import { api, ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth-context'
 import { useStatus } from '../../lib/status-context'
 import { useList } from '../../lib/useList'
-import { formatPaise, formatDate, paiseToInput, validateAmount } from '../../lib/money'
-import type { Wallet, Withdrawal, WithdrawalChargeNotice } from '../../lib/types'
+import { formatDate, paiseToInput, validateAmount } from '../../lib/money'
+import type { Wallet, Withdrawal } from '../../lib/types'
 import { AppPageHead } from '../../components/app/AppPageHead'
 import { AppSection } from '../../components/app/AppSection'
 import { Pager } from '../../components/app/Pager'
 import { StatusPill } from '../../components/app/StatusPill'
 import { WhatsAppIcon } from '../../components/app/app-icons'
-import { WithdrawalChargeModal } from '../../components/app/WithdrawalChargeModal'
 import { getWhatsAppSupportUrl } from '../../lib/support'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
@@ -51,33 +50,15 @@ export function Withdraw() {
   const [sent, setSent] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  // The charge popup, quoted at submit time so its percentage lines are always
-  // worked out against the amount the customer actually settled on. Null means
-  // the desk is collecting nothing today and the form posts straight through.
-  const [notice, setNotice] = useState<WithdrawalChargeNotice | null>(null)
-
-  // Set once the customer has tapped through the popup. The bill is paid by
-  // hand outside the app, so showing it a second time — after a validation
-  // error, say — would read as being charged twice. Editing the amount clears
-  // it, because a different payout is a different bill.
-  const [acknowledged, setAcknowledged] = useState(false)
-
   function set<K extends keyof Fields>(key: K, value: Fields[K]) {
     setFields((prev) => ({ ...prev, [key]: value }))
     setErrors((prev) => ({ ...prev, [key]: undefined }))
-    if (key === 'amount') setAcknowledged(false)
   }
 
-  /**
-   * Posts the payout. The popup collects nothing, so this is the same request
-   * the form has always sent — the server snapshots whichever notice was live
-   * onto the record by itself.
-   */
+  /** Posts the payout. */
   async function post() {
     setBusy(true)
     setAlert(null)
-    // However this turns out, the bill has been seen and is not shown again.
-    setNotice(null)
 
     try {
       const response = await api.post<{
@@ -94,7 +75,6 @@ export function Withdraw() {
 
       setSent(response.message)
       setFields((prev) => ({ ...prev, amount: '' }))
-      setAcknowledged(false)
       history.reload()
       refresh()
     } catch (caught) {
@@ -135,40 +115,7 @@ export function Withdraw() {
       return
     }
 
-    // Already tapped through the bill for this amount — go straight to the post
-    // rather than quoting and showing it a second time.
-    if (acknowledged) {
-      await post()
-      return
-    }
-
-    setBusy(true)
-    let quote: WithdrawalChargeNotice | null
-    try {
-      const response = await api.get<{ data: WithdrawalChargeNotice | null }>(
-        `/withdrawals/charges?amount=${encodeURIComponent(fields.amount.trim())}`,
-      )
-      quote = response.data
-    } catch (caught) {
-      setAlert(
-        caught instanceof ApiError
-          ? caught.message
-          : 'Something went wrong. Please try again.',
-      )
-      setBusy(false)
-      return
-    }
-
-    // `data: null` is a normal answer, not a failure: it means nothing is being
-    // collected, so the form behaves exactly as it did before the popup existed.
-    // Busy stays on through to the post so the button never flickers back.
-    if (!quote) {
-      await post()
-      return
-    }
-
-    setBusy(false)
-    setNotice(quote)
+    await post()
   }
 
   return (
@@ -297,7 +244,7 @@ export function Withdraw() {
               type="submit"
               disabled={busy || available <= 0}
             >
-              {busy ? 'Checking…' : 'Request withdrawal'}
+              {busy ? 'Sending…' : 'Request withdrawal'}
             </button>
           </form>
         </AppSection>
@@ -363,7 +310,6 @@ export function Withdraw() {
                 <tr>
                   <th scope="col">Requested</th>
                   <th scope="col">Amount</th>
-                  <th scope="col">Charges paid</th>
                   <th scope="col">UPI ID</th>
                   <th scope="col">Transfer ref</th>
                   <th scope="col">Status</th>
@@ -374,19 +320,6 @@ export function Withdraw() {
                   <tr key={payout.id}>
                     <td>{formatDate(payout.created_at)}</td>
                     <td className="num-strong">{payout.amount}</td>
-                    {/* Frozen at submission: a later change to the charges does
-                        not rewrite what this customer was asked to pay. */}
-                    <td>
-                      {payout.charge_total ?? '—'}
-                      {/* The snapshot carries `amount_paise` but no formatted
-                          twin, unlike the live quote — so these are formatted
-                          here. The total above already arrives as a string. */}
-                      {payout.charge_breakdown?.map((line) => (
-                        <p className="row-note" key={line.id}>
-                          {line.title} {formatPaise(line.amount_paise)}
-                        </p>
-                      ))}
-                    </td>
                     <td className="mono">{payout.upi_id}</td>
                     <td className="mono">{payout.payment_reference ?? '—'}</td>
                     <td>
@@ -406,23 +339,6 @@ export function Withdraw() {
         )}
         <Pager meta={history.meta} page={history.page} onPage={history.setPage} />
       </AppSection>
-
-      {notice && (
-        <WithdrawalChargeModal
-          notice={notice}
-          // The quote echoes back the amount it was worked out against, so the
-          // popup always names the payout the customer actually asked for —
-          // never a fixed figure.
-          amountLabel={formatPaise(notice.withdrawal_amount_paise)}
-          busy={busy}
-          alert={alert}
-          onCancel={() => setNotice(null)}
-          onContinue={() => {
-            setAcknowledged(true)
-            void post()
-          }}
-        />
-      )}
     </div>
   )
 }

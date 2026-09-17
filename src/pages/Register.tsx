@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
@@ -81,14 +81,18 @@ function strengthOf(password: string): { level: number; label: string } {
 export function Register() {
   const { user, booting, signUp } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   useDocumentTitle('Create an account — Delta Global')
+
+  /** Where the visitor was headed before the guard sent them here. */
+  const from = (location.state as { from?: string } | null)?.from ?? '/app'
 
   const [fields, setFields] = useState<Fields>(EMPTY)
   const [errors, setErrors] = useState<Errors>({})
   const [alert, setAlert] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  if (!booting && user) return <Navigate to="/app" replace />
+  if (!booting && user) return <Navigate to={from} replace />
 
   const strength = strengthOf(fields.password)
 
@@ -122,7 +126,7 @@ export function Register() {
         return
       }
 
-      navigate('/app', { replace: true })
+      navigate(from, { replace: true })
     } catch (caught) {
       if (caught instanceof ApiError) {
         setAlert(caught.message)
@@ -148,7 +152,10 @@ export function Register() {
       points={POINTS}
       footer={
         <p className="auth-alt">
-          Already have an account? <Link to="/login">Sign in</Link>
+          Already have an account?{' '}
+          <Link to="/login" state={{ from }}>
+            Sign in
+          </Link>
         </p>
       }
     >

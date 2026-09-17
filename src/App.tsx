@@ -13,6 +13,7 @@ import { NotFound } from './pages/NotFound'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { Dashboard } from './pages/app/Dashboard'
+import { StartProject } from './pages/app/StartProject'
 import { Deposit } from './pages/app/Deposit'
 import { Trading } from './pages/app/Trading'
 import { Withdraw } from './pages/app/Withdraw'
@@ -27,6 +28,7 @@ export default function App() {
           {/* The customer account area. Everything under it needs a token. */}
           <Route path="/app" element={<RequireAuth />}>
             <Route index element={<Dashboard />} />
+            <Route path="start" element={<StartProject />} />
             <Route path="deposit" element={<Deposit />} />
             <Route path="trading" element={<Trading />} />
             <Route path="withdraw" element={<Withdraw />} />

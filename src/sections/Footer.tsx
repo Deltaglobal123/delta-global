@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom'
 import { CONTACT, COPYRIGHT, FOOTER } from '../data'
 import { LogoMark } from '../icons'
+import { useWhatsAppSupportUrl } from '../lib/support'
 
 export function Footer() {
+  const whatsappUrl = useWhatsAppSupportUrl()
+
   return (
     <footer className="footer">
       <div className="shell">
@@ -37,9 +40,23 @@ export function Footer() {
           <div className="footer-col">
             <h2>Contact</h2>
             <ul>
-              <li>{CONTACT.email}</li>
-              <li>{CONTACT.phone}</li>
-              <li>{CONTACT.hours}</li>
+              {CONTACT.email && (
+                <li>
+                  <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+                </li>
+              )}
+              {CONTACT.phone && (
+                <li>
+                  <a href={`tel:${CONTACT.phone.replace(/[^+0-9]/g, '')}`}>
+                    {CONTACT.phone}
+                  </a>
+                </li>
+              )}
+              <li>
+                <a href={whatsappUrl} target="_blank" rel="noreferrer">
+                  WhatsApp support
+                </a>
+              </li>
             </ul>
           </div>
         </div>
