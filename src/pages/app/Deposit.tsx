@@ -1,36 +1,21 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { api, ApiError } from '../../lib/api'
 import { useStatus } from '../../lib/status-context'
 import { useList } from '../../lib/useList'
-import { formatDate, validateAmount } from '../../lib/money'
+import { formatDate } from '../../lib/money'
 import type { Deposit as DepositRequest, PaymentQr } from '../../lib/types'
 import { AppPageHead } from '../../components/app/AppPageHead'
 import { AppSection } from '../../components/app/AppSection'
 import { Pager } from '../../components/app/Pager'
 import { StatusPill } from '../../components/app/StatusPill'
+import { UpiPaymentForm } from '../../components/app/UpiPaymentForm'
+import {
+  toPaymentBody,
+  type UpiPaymentErrors,
+  type UpiPaymentValues,
+} from '../../lib/upi-payment'
 import { QrIcon, WhatsAppIcon } from '../../components/app/app-icons'
 import { getWhatsAppSupportUrl } from '../../lib/support'
-
-const MAX_SCREENSHOT = 4 * 1024 * 1024
-
-type Fields = {
-  amount: string
-  reference: string
-  payer_name: string
-  payer_upi_id: string
-  paid_at: string
-}
-
-/** The upload is validated under its own key server-side, so errors cover it too. */
-type Errors = Partial<Record<keyof Fields | 'screenshot', string>>
-
-const EMPTY: Fields = {
-  amount: '',
-  reference: '',
-  payer_name: '',
-  payer_upi_id: '',
-  paid_at: '',
-}
 
 export function Deposit() {
   const { refresh } = useStatus()
@@ -39,12 +24,12 @@ export function Deposit() {
   const [qr, setQr] = useState<PaymentQr | null>(null)
   const [qrLoading, setQrLoading] = useState(true)
 
-  const [fields, setFields] = useState<Fields>(EMPTY)
-  const [errors, setErrors] = useState<Errors>({})
-  const [screenshot, setScreenshot] = useState<File | null>(null)
+  const [errors, setErrors] = useState<UpiPaymentErrors>({})
   const [alert, setAlert] = useState<string | null>(null)
   const [sent, setSent] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // The form owns its fields, so a successful submit clears it by remounting.
+  const [formKey, setFormKey] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -60,77 +45,20 @@ export function Deposit() {
     return () => controller.abort()
   }, [])
 
-  function set<K extends keyof Fields>(key: K, value: Fields[K]) {
-    setFields((prev) => ({ ...prev, [key]: value }))
-    setErrors((prev) => ({ ...prev, [key]: undefined }))
-  }
-
-  function onFile(file: File | null) {
-    if (file && file.size > MAX_SCREENSHOT) {
-      setScreenshot(null)
-      setErrors((prev) => ({
-        ...prev,
-        screenshot: 'That image is over 4 MB. Pick a smaller one.',
-      }))
-      return
-    }
-    setErrors((prev) => ({ ...prev, screenshot: undefined }))
-    setScreenshot(file)
-  }
-
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function onSubmit(values: UpiPaymentValues) {
     setAlert(null)
     setSent(null)
-
-    const found: Errors = {}
-    const amountError = validateAmount(fields.amount)
-    if (amountError) found.amount = amountError
-
-    const reference = fields.reference.trim()
-    if (reference.length < 6 || reference.length > 60)
-      found.reference =
-        'Enter the UTR or reference from your UPI app, 6 to 60 characters.'
-
-    setErrors(found)
-    if (Object.keys(found).length > 0) {
-      document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
-      return
-    }
-
     setBusy(true)
-    try {
-      // Only reach for multipart when there is actually a file to carry.
-      let body: FormData | Record<string, string>
-      if (screenshot) {
-        const form = new FormData()
-        form.append('amount', fields.amount.trim())
-        form.append('reference', reference)
-        if (fields.payer_name.trim()) form.append('payer_name', fields.payer_name.trim())
-        if (fields.payer_upi_id.trim())
-          form.append('payer_upi_id', fields.payer_upi_id.trim())
-        if (fields.paid_at) form.append('paid_at', fields.paid_at)
-        form.append('screenshot', screenshot)
-        body = form
-      } else {
-        const json: Record<string, string> = {
-          amount: fields.amount.trim(),
-          reference,
-        }
-        if (fields.payer_name.trim()) json.payer_name = fields.payer_name.trim()
-        if (fields.payer_upi_id.trim()) json.payer_upi_id = fields.payer_upi_id.trim()
-        if (fields.paid_at) json.paid_at = fields.paid_at
-        body = json
-      }
 
+    try {
       const response = await api.post<{ data: DepositRequest; message: string }>(
         '/deposits',
-        body,
+        toPaymentBody(values),
       )
 
       setSent(response.message)
-      setFields(EMPTY)
-      setScreenshot(null)
+      setErrors({})
+      setFormKey((key) => key + 1)
       history.reload()
       refresh()
     } catch (caught) {
@@ -139,7 +67,7 @@ export function Deposit() {
         setErrors(
           Object.fromEntries(
             Object.entries(caught.errors).map(([key, list]) => [key, list[0]]),
-          ) as Errors,
+          ) as UpiPaymentErrors,
         )
       } else {
         setAlert('Something went wrong. Please try again.')
@@ -230,115 +158,21 @@ export function Deposit() {
             </p>
           )}
 
-          <form className="app-form" onSubmit={onSubmit} noValidate>
-            <div className="field-row">
-              <div className="field">
-                <label htmlFor="amount">Amount paid (₹)</label>
-                <input
-                  id="amount"
-                  inputMode="decimal"
-                  placeholder="2500.50"
-                  value={fields.amount}
-                  aria-invalid={Boolean(errors.amount)}
-                  onChange={(event) => set('amount', event.target.value)}
-                />
-                {errors.amount ? (
-                  <p className="field-error">{errors.amount}</p>
-                ) : (
-                  <p className="field-hint">Digits only, no commas or symbols.</p>
-                )}
-              </div>
-
-              <div className="field">
-                <label htmlFor="reference">UTR / reference</label>
-                <input
-                  id="reference"
-                  value={fields.reference}
-                  aria-invalid={Boolean(errors.reference)}
-                  onChange={(event) => set('reference', event.target.value)}
-                />
-                {errors.reference ? (
-                  <p className="field-error">{errors.reference}</p>
-                ) : (
-                  <p className="field-hint">One bank payment, one reference.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="field-row">
-              <div className="field">
-                <label htmlFor="payer_name">
-                  Name on the payment <span className="optional">optional</span>
-                </label>
-                <input
-                  id="payer_name"
-                  value={fields.payer_name}
-                  aria-invalid={Boolean(errors.payer_name)}
-                  onChange={(event) => set('payer_name', event.target.value)}
-                />
-                {errors.payer_name && (
-                  <p className="field-error">{errors.payer_name}</p>
-                )}
-              </div>
-
-              <div className="field">
-                <label htmlFor="payer_upi_id">
-                  Your UPI ID <span className="optional">optional</span>
-                </label>
-                <input
-                  id="payer_upi_id"
-                  placeholder="you@okhdfc"
-                  value={fields.payer_upi_id}
-                  aria-invalid={Boolean(errors.payer_upi_id)}
-                  onChange={(event) => set('payer_upi_id', event.target.value)}
-                />
-                {errors.payer_upi_id && (
-                  <p className="field-error">{errors.payer_upi_id}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="field-row">
-              <div className="field">
-                <label htmlFor="paid_at">
-                  Paid on <span className="optional">optional</span>
-                </label>
-                <input
-                  id="paid_at"
-                  type="date"
-                  value={fields.paid_at}
-                  aria-invalid={Boolean(errors.paid_at)}
-                  onChange={(event) => set('paid_at', event.target.value)}
-                />
-                {errors.paid_at && <p className="field-error">{errors.paid_at}</p>}
-              </div>
-
-              <div className="field">
-                <label htmlFor="screenshot">
-                  Payment screenshot <span className="optional">optional</span>
-                </label>
-                <input
-                  id="screenshot"
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  aria-invalid={Boolean(errors.screenshot)}
-                  onChange={(event) => onFile(event.target.files?.[0] ?? null)}
-                />
-                {errors.screenshot ? (
-                  <p className="field-error">{errors.screenshot}</p>
-                ) : (
-                  <p className="field-hint">PNG, JPG or WEBP, up to 4 MB.</p>
-                )}
-              </div>
-            </div>
-
-            <button className="btn btn-primary btn-lg" type="submit" disabled={busy}>
-              {busy ? 'Submitting…' : 'Submit payment details'}
-            </button>
-            <p className="app-muted">
-              Nothing reaches your wallet until our team verifies the payment.
-            </p>
-          </form>
+          <UpiPaymentForm
+            key={formKey}
+            idPrefix="deposit"
+            amountHint="Digits only, no commas or symbols."
+            serverErrors={errors}
+            busy={busy}
+            submitLabel="Submit payment details"
+            busyLabel="Submitting…"
+            footNote={
+              <p className="app-muted">
+                Nothing reaches your wallet until our team verifies the payment.
+              </p>
+            }
+            onSubmit={onSubmit}
+          />
         </AppSection>
       </div>
 

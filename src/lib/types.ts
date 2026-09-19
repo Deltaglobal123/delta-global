@@ -72,6 +72,57 @@ export type Trading = {
   created_at: string
 }
 
+export type ChargePaymentStatus = 'pending' | 'approved' | 'rejected'
+
+/**
+ * One charge in the sequence a customer pays before a payout is accepted. The
+ * charges are *not* deducted — they are paid separately, on their own QRs, so
+ * the payout still arrives in full.
+ *
+ * `amount` is already resolved against the withdrawal amount: a percentage
+ * charge quoted for ₹1,500 is a different figure for ₹2,000, which is why the
+ * sequence is fetched with the amount and voided when the amount changes.
+ */
+export type WithdrawalChargeStep = {
+  charge_id: number
+  /** 1-based already — render `step` of `step_count` with no arithmetic. */
+  step: number
+  step_count: number
+  title: string
+  description: string | null
+  instructions: string | null
+  /** Why it is that much: `18% of the withdrawal` or `₹99.00`. */
+  rule: string
+  amount: string
+  amount_paise: number
+  upi_id: string
+  qr_image_url: string
+}
+
+/** A charge already paid. The `id` is what the payout is submitted with. */
+export type WithdrawalChargePayment = {
+  id: number
+  charge_id: number
+  title: string
+  status: ChargePaymentStatus
+  status_label: string
+  amount_paise: number
+  amount: string
+  reference: string
+  created_at: string
+}
+
+export type WithdrawalChargesEnvelope = {
+  data: WithdrawalChargeStep[]
+  meta: {
+    step_count: number
+    total: string
+    total_paise: number
+    /** Charge payments not yet tied to a withdrawal — an unfinished walk. */
+    paid: WithdrawalChargePayment[]
+  }
+}
+
 export type WithdrawalStatus = 'pending' | 'approved' | 'paid' | 'rejected'
 
 export type Withdrawal = {
@@ -90,6 +141,8 @@ export type Withdrawal = {
   approved_at: string | null
   paid_at: string | null
   created_at: string
+  /** Absent on installs that collect no charges. */
+  charges?: WithdrawalChargePayment[]
 }
 
 export type TransactionType =

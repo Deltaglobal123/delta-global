@@ -1,21 +1,40 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth-context'
 import { useStatus } from '../../lib/status-context'
 import { useList } from '../../lib/useList'
-import { formatDate, paiseToInput, validateAmount } from '../../lib/money'
-import type { Wallet, Withdrawal } from '../../lib/types'
+import {
+  formatDate,
+  formatPaise,
+  inputToPaise,
+  paiseToInput,
+  validateAmount,
+} from '../../lib/money'
+import type { Wallet, Withdrawal, WithdrawalChargeStep } from '../../lib/types'
+import {
+  fetchCharges,
+  firstUnpaid,
+  paymentIdsFor,
+  payCharge,
+  settledBy,
+  type Settled,
+} from '../../lib/withdrawal-charges'
 import { AppPageHead } from '../../components/app/AppPageHead'
 import { AppSection } from '../../components/app/AppSection'
+import { ChargePopup } from '../../components/app/ChargePopup'
 import { Pager } from '../../components/app/Pager'
 import { StatusPill } from '../../components/app/StatusPill'
+import type { UpiPaymentErrors, UpiPaymentValues } from '../../lib/upi-payment'
 import { WhatsAppIcon } from '../../components/app/app-icons'
 import { getWhatsAppSupportUrl } from '../../lib/support'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const MOBILE_RE = /^\+?\d{10,20}$/
 const UPI_RE = /^[\w.-]{2,}@[a-zA-Z]{2,}$/
+
+/** How long the charge popup keeps its button down after a 429. */
+const COOLDOWN_MS = 15000
 
 type Fields = {
   amount: string
@@ -47,55 +66,175 @@ export function Withdraw() {
   })
   const [errors, setErrors] = useState<Errors>({})
   const [alert, setAlert] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [sent, setSent] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  // The charge walk. `lockedAmount` is what the charges were quoted against,
+  // so it is what every claim and the payout itself are sent with — the
+  // amount field is frozen for the same reason.
+  const [steps, setSteps] = useState<WithdrawalChargeStep[]>([])
+  const [index, setIndex] = useState(0)
+  const [paid, setPaid] = useState<Settled>({})
+  const [lockedAmount, setLockedAmount] = useState('')
+  const [chargeAlert, setChargeAlert] = useState<string | null>(null)
+  const [chargeErrors, setChargeErrors] = useState<UpiPaymentErrors>({})
+  const [cooling, setCooling] = useState(false)
+
+  const walkOpen = steps.length > 0
+
+  useEffect(() => {
+    if (!cooling) return
+    const timer = setTimeout(() => setCooling(false), COOLDOWN_MS)
+    return () => clearTimeout(timer)
+  }, [cooling])
 
   function set<K extends keyof Fields>(key: K, value: Fields[K]) {
     setFields((prev) => ({ ...prev, [key]: value }))
     setErrors((prev) => ({ ...prev, [key]: undefined }))
   }
 
-  /** Posts the payout. */
-  async function post() {
-    setBusy(true)
+  function closeWalk() {
+    setLockedAmount('')
+    setSteps([])
+    setIndex(0)
+    setPaid({})
+    setChargeAlert(null)
+    setChargeErrors({})
+  }
+
+  /**
+   * Posts the payout. Nothing is held and no withdrawal is created when this
+   * comes back 422, so restarting the walk from here is always safe.
+   */
+  async function post(chargePaymentIds: number[], amount: string) {
     setAlert(null)
+
+    const body: Record<string, unknown> = {
+      amount,
+      name: fields.name.trim(),
+      email: fields.email.trim(),
+      mobile_number: fields.mobile_number.replace(/[\s-]/g, ''),
+      upi_id: fields.upi_id.trim(),
+    }
+    if (chargePaymentIds.length > 0) body.charge_payment_ids = chargePaymentIds
 
     try {
       const response = await api.post<{
         data: Withdrawal
         wallet: Wallet
         message: string
-      }>('/withdrawals', {
-        amount: fields.amount.trim(),
-        name: fields.name.trim(),
-        email: fields.email.trim(),
-        mobile_number: fields.mobile_number.replace(/[\s-]/g, ''),
-        upi_id: fields.upi_id.trim(),
-      })
+      }>('/withdrawals', body)
 
+      closeWalk()
+      setNotice(null)
       setSent(response.message)
       setFields((prev) => ({ ...prev, amount: '' }))
       history.reload()
       refresh()
     } catch (caught) {
-      if (caught instanceof ApiError) {
-        setAlert(caught.message)
-        setErrors(
-          Object.fromEntries(
-            Object.entries(caught.errors).map(([key, list]) => [key, list[0]]),
-          ) as Errors,
-        )
-      } else {
+      if (!(caught instanceof ApiError)) {
+        closeWalk()
         setAlert('Something went wrong. Please try again.')
+        return
       }
-    } finally {
-      setBusy(false)
+
+      // A charge is unpaid, or these ids are spent or not this customer's.
+      // The message names what is outstanding; re-walk from there.
+      if (caught.fieldError('charge_payment_ids')) {
+        await rewalk(caught.fieldError('charge_payment_ids') as string, amount)
+        return
+      }
+
+      // The amount moved under a percentage charge, or the balance did.
+      // Either way the walk is void — send them back to the form.
+      const amountError = caught.fieldError('amount')
+      if (amountError) {
+        closeWalk()
+        setErrors((prev) => ({ ...prev, amount: amountError }))
+        setAlert(caught.message)
+        return
+      }
+
+      closeWalk()
+      setAlert(caught.message)
+      setErrors(
+        Object.fromEntries(
+          Object.entries(caught.errors).map(([key, list]) => [key, list[0]]),
+        ) as Errors,
+      )
     }
+  }
+
+  /** Re-fetches the sequence and reopens it at the first unpaid step. */
+  async function rewalk(message: string, amount: string) {
+    try {
+      const { data, meta } = await fetchCharges(amount)
+
+      if (data.length === 0) {
+        closeWalk()
+        setAlert(message)
+        return
+      }
+
+      const settled = settledBy(meta.paid)
+      const next = firstUnpaid(data, settled)
+      if (next === -1) {
+        // Everything is settled yet the payout was still refused — nothing
+        // useful left to reopen, so hand it back to the customer.
+        closeWalk()
+        setAlert(message)
+        return
+      }
+
+      setLockedAmount(amount)
+      setSteps(data)
+      setPaid(settled)
+      setIndex(next)
+      setChargeErrors({})
+      setChargeAlert(message)
+    } catch {
+      closeWalk()
+      setAlert(message)
+    }
+  }
+
+  /** "Withdraw" pressed: fetch the sequence, then either walk it or submit. */
+  async function begin(amount: string) {
+    setLockedAmount(amount)
+
+    const { data, meta } = await fetchCharges(amount)
+
+    // An empty sequence is a normal answer — nothing is being collected.
+    if (data.length === 0) {
+      await post([], amount)
+      return
+    }
+
+    const settled = settledBy(meta.paid)
+    const next = firstUnpaid(data, settled)
+
+    if (next === -1) {
+      // An earlier walk covered the whole sequence — go straight to the payout.
+      await post(paymentIdsFor(data, settled), amount)
+      return
+    }
+
+    setSteps(data)
+    setPaid(settled)
+    setIndex(next)
+    setChargeAlert(null)
+    setChargeErrors({})
+    if (meta.paid.length > 0)
+      setNotice(
+        `Picking up where you left off — ${meta.paid.length} charge${meta.paid.length === 1 ? '' : 's'} already paid.`,
+      )
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setAlert(null)
+    setNotice(null)
     setSent(null)
 
     const found: Errors = {}
@@ -115,8 +254,86 @@ export function Withdraw() {
       return
     }
 
-    await post()
+    setBusy(true)
+    try {
+      await begin(fields.amount.trim())
+    } catch (caught) {
+      closeWalk()
+      setAlert(
+        caught instanceof ApiError
+          ? caught.message
+          : 'Something went wrong. Please try again.',
+      )
+    } finally {
+      setBusy(false)
+    }
   }
+
+  /**
+   * One charge, recorded the moment its popup is done — never batched to the
+   * end. Real money has already left the customer's account by then, so an
+   * abandoned walk still leaves a record an admin can act on.
+   */
+  async function onChargePaid(values: UpiPaymentValues) {
+    const step = steps[index]
+    if (!step) return
+
+    setBusy(true)
+    setChargeAlert(null)
+    setChargeErrors({})
+
+    try {
+      const { data } = await payCharge(step.charge_id, values)
+
+      const settled = { ...paid, [step.charge_id]: data.id }
+      setPaid(settled)
+
+      const next = firstUnpaid(steps, settled)
+      if (next === -1) await post(paymentIdsFor(steps, settled), lockedAmount)
+      else setIndex(next)
+    } catch (caught) {
+      if (!(caught instanceof ApiError)) {
+        setChargeAlert('Something went wrong. Please try again.')
+        return
+      }
+
+      if (caught.status === 429) {
+        setCooling(true)
+        setChargeAlert(caught.message)
+        return
+      }
+
+      const fieldErrors = Object.entries(caught.errors)
+      if (caught.status === 422 && fieldErrors.length === 0) {
+        // The charge was stood down mid-walk. Start the sequence over.
+        await rewalk(caught.message, lockedAmount)
+        return
+      }
+
+      setChargeErrors(
+        Object.fromEntries(
+          fieldErrors.map(([key, list]) => [key, list[0]]),
+        ) as UpiPaymentErrors,
+      )
+      setChargeAlert(caught.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function onWalkCancelled() {
+    const count = Object.keys(paid).length
+    closeWalk()
+    setNotice(
+      count > 0
+        ? `Your payout was not submitted. The ${count} charge${count === 1 ? '' : 's'} you paid ${count === 1 ? 'is' : 'are'} saved — press Request withdrawal again to carry on.`
+        : 'Your payout was not submitted. Press Request withdrawal to start again.',
+    )
+  }
+
+  const lockedPaise = inputToPaise(lockedAmount)
+  const withdrawalLabel =
+    lockedPaise === null ? lockedAmount : formatPaise(lockedPaise)
 
   return (
     <div className="app-page">
@@ -138,6 +355,7 @@ export function Withdraw() {
               {alert}
             </p>
           )}
+          {notice && <p className="form-notice">{notice}</p>}
 
           {tradeOpen && (
             <p className="form-notice">
@@ -156,13 +374,17 @@ export function Withdraw() {
                   inputMode="decimal"
                   placeholder="1500"
                   value={fields.amount}
+                  // Frozen while charges are being collected: percentage
+                  // charges were quoted against this figure, and changing it
+                  // would void everything already paid.
+                  disabled={walkOpen}
                   aria-invalid={Boolean(errors.amount)}
                   onChange={(event) => set('amount', event.target.value)}
                 />
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
-                  disabled={available <= 0}
+                  disabled={available <= 0 || walkOpen}
                   onClick={() => set('amount', paiseToInput(available))}
                 >
                   Max
@@ -242,7 +464,7 @@ export function Withdraw() {
             <button
               className="btn btn-primary btn-lg"
               type="submit"
-              disabled={busy || available <= 0}
+              disabled={busy || walkOpen || available <= 0}
             >
               {busy ? 'Sending…' : 'Request withdrawal'}
             </button>
@@ -330,6 +552,24 @@ export function Withdraw() {
                       {payout.admin_note && (
                         <p className="row-note">{payout.admin_note}</p>
                       )}
+                      {/* The charges are verified separately from the payout,
+                          so each carries its own status. */}
+                      {payout.charges && payout.charges.length > 0 && (
+                        <ul className="charge-status-list">
+                          {payout.charges.map((charge) => (
+                            <li key={charge.id}>
+                              <span className="charge-status-title">
+                                {charge.title}
+                              </span>
+                              <span className="mono">{charge.amount}</span>
+                              <StatusPill
+                                status={charge.status}
+                                label={charge.status_label}
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -339,6 +579,27 @@ export function Withdraw() {
         )}
         <Pager meta={history.meta} page={history.page} onPage={history.setPage} />
       </AppSection>
+
+      {walkOpen && steps[index] && (
+        <ChargePopup
+          key={steps[index].charge_id}
+          step={steps[index]}
+          steps={steps}
+          paidChargeIds={new Set(Object.keys(paid).map(Number))}
+          withdrawalAmount={lockedAmount}
+          withdrawalLabel={withdrawalLabel}
+          isLast={
+            steps.filter((entry) => paid[entry.charge_id] === undefined)
+              .length === 1
+          }
+          busy={busy}
+          alert={chargeAlert}
+          cooling={cooling}
+          fieldErrors={chargeErrors}
+          onCancel={onWalkCancelled}
+          onPaid={onChargePaid}
+        />
+      )}
     </div>
   )
 }

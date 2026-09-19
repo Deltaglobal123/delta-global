@@ -3531,6 +3531,207 @@
   }
 }
 
+
+/* =========================== withdrawal charges ========================== */
+
+/* A charge is paid on its own QR, on its own account, so the popup is a whole
+   payment screen rather than a confirmation — wider than the quiz card. */
+.charge-card {
+  width: min(600px, 100%);
+}
+
+.charge-title {
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-strong);
+}
+
+.charge-trail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 22px 0;
+}
+
+.charge-trail li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.charge-trail li > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.charge-trail li svg {
+  width: 15px;
+  height: 15px;
+}
+
+.charge-trail .is-current {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.charge-trail .is-current > span:first-child {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.charge-trail .is-done {
+  color: var(--accent);
+  border-color: rgba(46, 230, 168, 0.28);
+}
+
+.charge-trail-note {
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  opacity: 0.8;
+}
+
+.charge-body {
+  gap: 16px;
+}
+
+.charge-amount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.charge-amount strong {
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-strong);
+}
+
+.charge-amount span {
+  font-size: 13.5px;
+  color: var(--text-dim);
+}
+
+/* The charges are collected, not deducted — say so where the number is, or
+   people read the payout as reduced. */
+.charge-separate {
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(46, 230, 168, 0.18);
+  background: rgba(46, 230, 168, 0.05);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.charge-separate strong {
+  color: var(--text-strong);
+}
+
+.charge-qr {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.charge-qr .qr-image {
+  max-width: 240px;
+}
+
+.charge-upi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.charge-instructions {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  white-space: pre-line;
+}
+
+.charge-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+}
+
+.charge-confirm p {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.charge-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* The amount is the system's, not the customer's — rendered as the figure it
+   is, in the slot the editable input would occupy. */
+.amount-fixed {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px dashed var(--border-strong);
+  background: var(--surface-2);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+/* Each charge is verified on its own, so the payout row carries a status per
+   charge alongside its own. */
+.charge-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.charge-status-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.charge-status-title {
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.charge-status-list .pill {
+  padding: 3px 9px;
+  font-size: 11px;
+}
+
 /* =============================== responsive ============================== */
 
 @media (max-width: 1080px) {
