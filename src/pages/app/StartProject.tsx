@@ -138,7 +138,7 @@ export function StartProject() {
               onClick={onStart}
               disabled={loading || busy}
             >
-              Start AI trading
+              Start project
               <ArrowIcon />
             </button>
           </div>

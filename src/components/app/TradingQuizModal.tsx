@@ -16,8 +16,9 @@ type Props = {
 /**
  * Twelve questions, one at a time, in a fresh order per run. Either answer
  * advances; the true answer is shown either way, because the point is that the
- * statement has been read, not that a score was achieved. The run is committed
- * by the caller once the last card is answered.
+ * statement has been read, not that a score was achieved. The last card asks
+ * whether the customer is ready, and only a Yes gets past it. The run is
+ * committed by the caller once that card is answered.
  */
 export function TradingQuizModal({
   amountLabel,
@@ -58,6 +59,9 @@ export function TradingQuizModal({
   }
 
   const correct = picked !== null && picked === current.answer
+  // A required question stays open until its answer is picked.
+  const locked = picked !== null && !current.required
+  const canAdvance = picked !== null && (!current.required || correct)
 
   return (
     <div className="quiz-backdrop" role="presentation">
@@ -109,14 +113,20 @@ export function TradingQuizModal({
                   picked === choice ? 'quiz-option is-picked' : 'quiz-option'
                 }
                 onClick={() => answer(choice)}
-                disabled={picked !== null || busy}
+                disabled={locked || busy}
               >
                 {choice === 'yes' ? 'Yes' : 'No'}
               </button>
             ))}
           </div>
 
-          {picked !== null && (
+          {picked !== null && current.required && !correct && (
+            <p className="quiz-verdict">
+              You need to choose Yes to start AI trading.
+            </p>
+          )}
+
+          {picked !== null && !current.required && (
             <p className={correct ? 'quiz-verdict is-right' : 'quiz-verdict'}>
               {correct ? <CheckIcon /> : null}
               {correct
@@ -131,7 +141,7 @@ export function TradingQuizModal({
             type="button"
             className="btn btn-primary btn-lg"
             onClick={next}
-            disabled={picked === null || busy}
+            disabled={!canAdvance || busy}
           >
             {busy
               ? 'Starting…'

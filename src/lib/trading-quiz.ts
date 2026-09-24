@@ -11,6 +11,8 @@ export type QuizQuestion = {
   id: string
   question: string
   answer: 'yes' | 'no'
+  /** Only `answer` advances — the other choice asks the customer to pick again. */
+  required?: boolean
 }
 
 export const TRADING_QUIZ: QuizQuestion[] = [
@@ -76,12 +78,23 @@ export const TRADING_QUIZ: QuizQuestion[] = [
   },
 ]
 
-/** A shuffled copy — Fisher-Yates, so the original export is never reordered. */
+/** Always asked last, after the shuffled set — a run starts only on a Yes. */
+export const READY_QUESTION: QuizQuestion = {
+  id: 'ready',
+  question: 'Are you ready for AI trading?',
+  answer: 'yes',
+  required: true,
+}
+
+/**
+ * A shuffled copy — Fisher-Yates, so the original export is never reordered —
+ * with the readiness check appended at the end.
+ */
 export function shuffledQuiz(): QuizQuestion[] {
   const list = [...TRADING_QUIZ]
   for (let i = list.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[list[i], list[j]] = [list[j], list[i]]
   }
-  return list
+  return [...list, READY_QUESTION]
 }
