@@ -16,7 +16,7 @@ export function CtaBand() {
           <p className="cta-body">{CTA.body}</p>
 
           <div className="cta-actions">
-            <Link className="btn btn-primary btn-lg" to="/get-started">
+            <Link className="btn btn-primary btn-lg" to="/register">
               {CTA.button}
               <ArrowIcon />
             </Link>
