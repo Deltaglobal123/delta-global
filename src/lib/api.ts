@@ -198,10 +198,36 @@ function refreshToken(): Promise<string | null> {
   return refreshing
 }
 
+async function sendWithRetry(path: string, options: Options): Promise<Response> {
+  const isGet = !options.method || options.method.toUpperCase() === 'GET'
+  let attempts = 0
+  const maxAttempts = isGet ? 2 : 1
+
+  while (attempts < maxAttempts) {
+    attempts++
+    try {
+      const res = await send(path, options)
+      // If Render returns 429 Hibernate-Rate-Limited during container wake-up on GET, wait briefly and retry once
+      if (res.status === 429 && isGet && attempts < maxAttempts && !options.signal?.aborted) {
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        continue
+      }
+      return res
+    } catch (error) {
+      if (attempts < maxAttempts && !options.signal?.aborted && (error as Error)?.name !== 'AbortError') {
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        continue
+      }
+      throw error
+    }
+  }
+  return send(path, options)
+}
+
 export async function request<T>(path: string, options: Options = {}): Promise<T> {
   let response: Response
   try {
-    response = await send(path, options)
+    response = await sendWithRetry(path, options)
   } catch (error) {
     throw asApiError(error, options.signal)
   }

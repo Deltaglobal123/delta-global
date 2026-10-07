@@ -9,8 +9,8 @@ import { setDynamicWhatsAppNumber } from './support'
  * waiting on a human. `/status` returns the wallet plus everything outstanding
  * in one call, which is why this polls that single endpoint rather than four.
  */
-const POLL_WAITING = 6000
-const POLL_IDLE = 20000
+const POLL_WAITING = 10000
+const POLL_IDLE = 30000
 
 export function StatusProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status | null>(null)
