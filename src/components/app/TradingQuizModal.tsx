@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
-import { shuffledQuiz, type QuizQuestion } from '../../lib/trading-quiz'
+import { useEffect, useRef, useState } from 'react'
+import { loadQuiz, type QuizQuestion } from '../../lib/trading-quiz'
 import { CheckIcon } from '../../icons'
+
+/** How long "Next question" waits before the next card appears. */
+const NEXT_QUESTION_DELAY_MS = 2000
 
 type Props = {
   /** What will be committed once the last question is answered. */
@@ -14,11 +17,16 @@ type Props = {
 }
 
 /**
- * Twelve questions, one at a time, in a fresh order per run. Either answer
- * advances; the true answer is shown either way, because the point is that the
- * statement has been read, not that a score was achieved. The last card asks
- * whether the customer is ready, and only a Yes gets past it. The run is
- * committed by the caller once that card is answered.
+ * The admin's questions, one at a time, in the order they were published. A
+ * pick locks both buttons and shows whether it was right — the right answer is
+ * highlighted either way — and any pick lets the customer move on. The last
+ * card asks whether the customer is ready, and only a Yes gets past it. The run
+ * is committed by the caller once that card is answered.
+ *
+ * Each move to the next card takes a short pause, and the count of questions is
+ * never shown, so the customer cannot see how many remain.
+ *
+ * If the admin's set could not be loaded, a built-in set stands in.
  */
 export function TradingQuizModal({
   amountLabel,
@@ -27,15 +35,22 @@ export function TradingQuizModal({
   onCancel,
   onComplete,
 }: Props) {
-  // Shuffled once per mount: re-rolling on every render would swap the question
-  // out from under the customer mid-answer.
-  const questions = useMemo<QuizQuestion[]>(() => shuffledQuiz(), [])
+  // Loaded once per mount: reloading mid-run would swap the question out from
+  // under the customer mid-answer.
+  const [questions, setQuestions] = useState<QuizQuestion[] | null>(null)
 
   const [index, setIndex] = useState(0)
-  const [picked, setPicked] = useState<'yes' | 'no' | null>(null)
+  const [picked, setPicked] = useState<string | null>(null)
 
-  const current = questions[index]
-  const isLast = index === questions.length - 1
+  useEffect(() => {
+    const controller = new AbortController()
+    loadQuiz(controller.signal)
+      .then(setQuestions)
+      .catch(() => {
+        /* aborted on unmount */
+      })
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -45,23 +60,53 @@ export function TradingQuizModal({
     return () => document.removeEventListener('keydown', onKey)
   }, [busy, onCancel])
 
-  function answer(choice: 'yes' | 'no') {
-    setPicked(choice)
-  }
+  // The pause between cards; cleared if the popup closes mid-wait.
+  const [advancing, setAdvancing] = useState(false)
+  const timer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+
+  const loaded = questions?.[index] ?? null
+  // Hidden while the next card is on its way, so nothing can be tapped early.
+  const current = advancing ? null : loaded
+  const total = questions?.length ?? 0
+  const isLast = index === total - 1
 
   function next() {
     if (isLast) {
       onComplete()
       return
     }
-    setPicked(null)
-    setIndex((prev) => prev + 1)
+    setAdvancing(true)
+    timer.current = window.setTimeout(() => {
+      setPicked(null)
+      setIndex((prev) => prev + 1)
+      setAdvancing(false)
+    }, NEXT_QUESTION_DELAY_MS)
   }
 
-  const correct = picked !== null && picked === current.answer
+  function answer(choice: string) {
+    // No usable right answer means nothing to reveal — the tap moves on.
+    if (current && current.answer === null && !isLast) {
+      next()
+      return
+    }
+    setPicked(choice)
+  }
+
+  const correct = picked !== null && picked === current?.answer
   // A required question stays open until its answer is picked.
-  const locked = picked !== null && !current.required
-  const canAdvance = picked !== null && (!current.required || correct)
+  const locked = picked !== null && !current?.required
+  const canAdvance = picked !== null && (!current?.required || correct)
+
+  /** Once a pick is locked in, the right answer turns green and a wrong pick red. */
+  function optionClass(choice: string) {
+    if (locked && current?.answer) {
+      if (choice === current.answer) return 'quiz-option is-correct'
+      if (choice === picked) return 'quiz-option is-wrong'
+      return 'quiz-option'
+    }
+    return picked === choice ? 'quiz-option is-picked' : 'quiz-option'
+  }
 
   return (
     <div className="quiz-backdrop" role="presentation">
@@ -70,11 +115,13 @@ export function TradingQuizModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="quiz-question"
+        aria-busy={!current}
       >
         <header className="quiz-head">
           <div>
+            {/* No count — how many questions remain is not shown. */}
             <span className="quiz-step">
-              Question {index + 1} of {questions.length}
+              {questions ? 'Before you start' : 'Loading questions…'}
             </span>
             <p className="quiz-amount">Committing {amountLabel}</p>
           </div>
@@ -89,13 +136,13 @@ export function TradingQuizModal({
           </button>
         </header>
 
-        <div className="quiz-progress" aria-hidden="true">
-          <span style={{ width: `${((index + 1) / questions.length) * 100}%` }} />
-        </div>
-
         <div className="quiz-body">
-          <h2 className="quiz-question" id="quiz-question">
-            {current.question}
+          <h2 className="quiz-question" id="quiz-question" aria-live="polite">
+            {current
+              ? current.question
+              : advancing
+                ? 'Getting your next question ready…'
+                : 'Getting your questions ready…'}
           </h2>
 
           {alert && (
@@ -105,50 +152,56 @@ export function TradingQuizModal({
           )}
 
           <div className="quiz-options">
-            {(['yes', 'no'] as const).map((choice) => (
+            {(current?.options ?? ['Yes', 'No']).map((choice) => (
               <button
                 key={choice}
                 type="button"
-                className={
-                  picked === choice ? 'quiz-option is-picked' : 'quiz-option'
-                }
+                className={optionClass(choice)}
                 onClick={() => answer(choice)}
-                disabled={locked || busy}
+                disabled={!current || locked || busy}
               >
-                {choice === 'yes' ? 'Yes' : 'No'}
+                {choice}
               </button>
             ))}
           </div>
 
-          {picked !== null && current.required && !correct && (
+          {current && picked !== null && current.required && !correct && (
             <p className="quiz-verdict">
-              You need to choose Yes to start AI trading.
+              You need to choose {current.answer} to start AI trading.
             </p>
           )}
 
-          {picked !== null && !current.required && (
-            <p className={correct ? 'quiz-verdict is-right' : 'quiz-verdict'}>
+          {current && picked !== null && !current.required && current.answer && (
+            <p
+              className={correct ? 'quiz-verdict is-right' : 'quiz-verdict is-wrong'}
+              role="status"
+            >
               {correct ? <CheckIcon /> : null}
               {correct
-                ? 'That is right.'
-                : `The answer is ${current.answer === 'yes' ? 'Yes' : 'No'}.`}
+                ? 'Correct!'
+                : `Wrong. The right answer is ${current.answer}.`}
             </p>
           )}
         </div>
 
         <footer className="quiz-foot">
-          <button
-            type="button"
-            className="btn btn-primary btn-lg"
-            onClick={next}
-            disabled={!canAdvance || busy}
-          >
-            {busy
-              ? 'Starting…'
-              : isLast
-                ? `Start AI trading with ${amountLabel}`
-                : 'Next question'}
-          </button>
+          {/* Only needed once there is something to read before moving on. */}
+          {(current?.answer !== null || isLast) && (
+            <button
+              type="button"
+              className="btn btn-primary btn-lg"
+              onClick={next}
+              disabled={!canAdvance || advancing || busy}
+            >
+              {busy
+                ? 'Starting…'
+                : advancing
+                  ? 'Loading…'
+                  : isLast
+                  ? `Start AI trading with ${amountLabel}`
+                  : 'Next question'}
+            </button>
+          )}
           <button
             type="button"
             className="btn btn-ghost"

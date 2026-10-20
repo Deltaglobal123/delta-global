@@ -1,100 +1,101 @@
+import { request } from './api'
+
 /**
- * The questions a customer works through before a run is committed. Every one
- * of them is asked, in a fresh order each time, so the sequence cannot be
- * tapped through from memory.
+ * The questions a customer works through before a run is committed. They are
+ * managed by the admin and served by `GET /popup-questions`, already filtered
+ * to the visible ones and sorted by `sort_order` — so they are shown as given.
  *
- * `answer` is what is true, not a gate: any choice moves the customer on and
- * the right answer is shown either way. The point is that nobody commits a
- * balance without having read twelve plain statements about what trading is.
+ * Each one carries the admin's `correct_answer`. The customer's pick is checked
+ * against it here in the frontend and never saved; the result is shown, and any
+ * pick moves the customer on. With `required` the question is a gate instead,
+ * and only its `answer` lets the customer through.
  */
 export type QuizQuestion = {
   id: string
   question: string
-  answer: 'yes' | 'no'
-  /** Only `answer` advances — the other choice asks the customer to pick again. */
+  /** The buttons, in order. */
+  options: string[]
+  /** The option that is true, or null when any choice simply advances. */
+  answer: string | null
+  /** Only `answer` advances — another choice asks the customer to pick again. */
   required?: boolean
 }
 
-export const TRADING_QUIZ: QuizQuestion[] = [
-  {
-    id: 'earnings',
-    question: 'Can people earn ₹2–4 lakh profit from trading?',
-    answer: 'yes',
-  },
-  {
-    id: 'guaranteed',
-    question: 'Is trading a guaranteed way to make money?',
-    answer: 'no',
-  },
-  {
-    id: 'regulated',
-    question: 'Does the government regulate financial markets?',
-    answer: 'yes',
-  },
-  {
-    id: 'learning',
-    question: 'Can anyone become profitable without learning?',
-    answer: 'no',
-  },
-  {
-    id: 'tax',
-    question: 'Is tax applicable on eligible trading profits?',
-    answer: 'yes',
-  },
-  {
-    id: 'withdraw',
-    question: 'Can traders legally withdraw their profits?',
-    answer: 'yes',
-  },
-  {
-    id: 'every-trade',
-    question: 'Is every trade profitable?',
-    answer: 'no',
-  },
-  {
-    id: 'policy',
-    question: 'Can government policies affect the financial markets?',
-    answer: 'yes',
-  },
-  {
-    id: 'strategy',
-    question: 'Should you trade without a strategy?',
-    answer: 'no',
-  },
-  {
-    id: 'risk',
-    question: 'Is risk management important in trading?',
-    answer: 'yes',
-  },
-  {
-    id: 'full-time',
-    question: 'Can trading be a full-time profession for some people?',
-    answer: 'yes',
-  },
-  {
-    id: 'profit-guarantee',
-    question: 'Can profits be guaranteed in trading?',
-    answer: 'no',
-  },
-]
+/** One row of `GET /popup-questions`. */
+type PopupQuestion = {
+  id: number
+  question: string
+  answers: string[]
+  correct_answer: string
+  sort_order: number
+}
 
-/** Always asked last, after the shuffled set — a run starts only on a Yes. */
-export const READY_QUESTION: QuizQuestion = {
-  id: 'ready',
-  question: 'Are you ready for AI trading?',
-  answer: 'yes',
-  required: true,
+const YES_NO = ['Yes', 'No']
+
+function fact(id: string, question: string, answer: 'Yes' | 'No'): QuizQuestion {
+  return { id, question, options: YES_NO, answer }
 }
 
 /**
- * A shuffled copy — Fisher-Yates, so the original export is never reordered —
- * with the readiness check appended at the end.
+ * Asked when the API cannot be reached or has nothing published, so starting a
+ * run never depends on the admin panel being filled in.
  */
-export function shuffledQuiz(): QuizQuestion[] {
-  const list = [...TRADING_QUIZ]
-  for (let i = list.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[list[i], list[j]] = [list[j], list[i]]
+const FALLBACK_QUIZ: QuizQuestion[] = [
+  fact('earnings', 'Can people earn ₹2–4 lakh profit from trading?', 'Yes'),
+  fact('guaranteed', 'Is trading a guaranteed way to make money?', 'No'),
+  fact('regulated', 'Does the government regulate financial markets?', 'Yes'),
+  fact('learning', 'Can anyone become profitable without learning?', 'No'),
+  fact('tax', 'Is tax applicable on eligible trading profits?', 'Yes'),
+  fact('withdraw', 'Can traders legally withdraw their profits?', 'Yes'),
+  fact('every-trade', 'Is every trade profitable?', 'No'),
+  fact('policy', 'Can government policies affect the financial markets?', 'Yes'),
+  fact('strategy', 'Should you trade without a strategy?', 'No'),
+  fact('risk', 'Is risk management important in trading?', 'Yes'),
+  fact('full-time', 'Can trading be a full-time profession for some people?', 'Yes'),
+  fact('profit-guarantee', 'Can profits be guaranteed in trading?', 'No'),
+]
+
+/** Always asked last — a run starts only on a Yes. */
+export const READY_QUESTION: QuizQuestion = {
+  id: 'ready',
+  question: 'Are you ready for AI trading?',
+  options: YES_NO,
+  answer: 'Yes',
+  required: true,
+}
+
+function toQuizQuestion(row: PopupQuestion): QuizQuestion {
+  const options = (row.answers ?? []).filter((label) => label?.trim())
+  // The API promises ["Yes", "No"]; an empty list would leave no way forward.
+  const usable = options.length > 0 ? options : YES_NO
+  return {
+    id: `popup-${row.id}`,
+    question: row.question,
+    options: usable,
+    // Compared exactly, as the API asks. One that matches no button cannot be
+    // picked, so the question is treated as having no right answer instead.
+    answer: usable.includes(row.correct_answer) ? row.correct_answer : null,
   }
-  return [...list, READY_QUESTION]
+}
+
+/**
+ * The full set for one run: the admin's questions (or the fallback), then the
+ * readiness check. Never rejects — a failed request falls back instead, unless
+ * the caller aborted it.
+ */
+export async function loadQuiz(signal?: AbortSignal): Promise<QuizQuestion[]> {
+  let questions = FALLBACK_QUIZ
+
+  try {
+    const response = await request<{ data: PopupQuestion[] }>('/popup-questions', {
+      auth: false,
+      signal,
+    })
+    const rows = (response?.data ?? []).filter((row) => row.question?.trim())
+    if (rows.length > 0) questions = rows.map(toQuizQuestion)
+  } catch (error) {
+    if (signal?.aborted) throw error
+  }
+
+  return [...questions, READY_QUESTION]
 }
