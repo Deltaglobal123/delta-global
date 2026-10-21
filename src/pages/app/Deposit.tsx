@@ -16,6 +16,7 @@ import {
 } from '../../lib/upi-payment'
 import { QrIcon, WhatsAppIcon } from '../../components/app/app-icons'
 import { getWhatsAppSupportUrl } from '../../lib/support'
+import { DEPOSIT_PLANS, DEPOSIT_PLAN_TERMS } from '../../lib/deposit-plans'
 
 export function Deposit() {
   const { refresh } = useStatus()
@@ -30,6 +31,21 @@ export function Deposit() {
   const [busy, setBusy] = useState(false)
   // The form owns its fields, so a successful submit clears it by remounting.
   const [formKey, setFormKey] = useState(0)
+
+  const [planId, setPlanId] = useState<string | null>(null)
+  const [preset, setPreset] = useState<{ value: string; key: number } | null>(null)
+
+  // Plans are for a first deposit, so they show only once the history has
+  // loaded and come back empty — never while it is still unknown.
+  const isFirstDeposit =
+    !history.loading &&
+    !history.error &&
+    (history.meta?.total ?? history.items.length) === 0
+
+  function choosePlan(id: string, amount: string) {
+    setPlanId(id)
+    setPreset((prev) => ({ value: amount, key: (prev?.key ?? 0) + 1 }))
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -59,6 +75,8 @@ export function Deposit() {
       setSent(response.message)
       setErrors({})
       setFormKey((key) => key + 1)
+      setPlanId(null)
+      setPreset(null)
       history.reload()
       refresh()
     } catch (caught) {
@@ -84,6 +102,44 @@ export function Deposit() {
         title="Top up your wallet"
         lead="Scan the QR in your UPI app, pay, then tell us the reference. Our team matches it against the bank statement and credits your wallet."
       />
+
+      {isFirstDeposit && (
+        <AppSection title="First deposit plans">
+          <p className="app-muted plan-intro">
+            Pick a plan to fill in your deposit amount, then scan the QR and pay.
+          </p>
+
+          <div className="deposit-plans">
+            {DEPOSIT_PLANS.map((plan) => (
+              <button
+                key={plan.id}
+                type="button"
+                className={
+                  planId === plan.id ? 'deposit-plan is-chosen' : 'deposit-plan'
+                }
+                aria-pressed={planId === plan.id}
+                onClick={() => choosePlan(plan.id, plan.amount)}
+              >
+                <span className="deposit-plan-name">{plan.name}</span>
+                <strong className="deposit-plan-price">{plan.price}</strong>
+                <span className="deposit-plan-body">{plan.body}</span>
+                <span className="deposit-plan-cta">
+                  {planId === plan.id ? 'Selected' : 'Choose plan'}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <details className="plan-terms">
+            <summary>Terms and conditions</summary>
+            <ul>
+              {DEPOSIT_PLAN_TERMS.map((term) => (
+                <li key={term}>{term}</li>
+              ))}
+            </ul>
+          </details>
+        </AppSection>
+      )}
 
       <div className="deposit-layout">
         <AppSection title="Scan and pay">
@@ -161,6 +217,7 @@ export function Deposit() {
           <UpiPaymentForm
             key={formKey}
             idPrefix="deposit"
+            presetAmount={preset}
             amountHint="Digits only, no commas or symbols."
             serverErrors={errors}
             busy={busy}

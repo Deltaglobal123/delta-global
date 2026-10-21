@@ -25,6 +25,11 @@ type Props = {
    * customer types it, which is what the deposit screen wants.
    */
   fixedAmount?: string | null
+  /**
+   * Fills in the amount the customer can still edit — a deposit plan. A new
+   * `key` re-applies it, so picking the same plan again resets a changed field.
+   */
+  presetAmount?: { value: string; key: number } | null
   /** The pre-formatted figure shown in place of the input: `₹270.00`. */
   fixedAmountLabel?: string
   amountLabel?: string
@@ -48,6 +53,7 @@ type Props = {
 export function UpiPaymentForm({
   idPrefix,
   fixedAmount = null,
+  presetAmount = null,
   fixedAmountLabel,
   amountLabel = 'Amount paid (₹)',
   amountHint,
@@ -65,6 +71,14 @@ export function UpiPaymentForm({
   const [edited, setEdited] = useState<Partial<Record<Field, true>>>({})
 
   useEffect(() => setEdited({}), [serverErrors])
+
+  useEffect(() => {
+    if (!presetAmount) return
+    setValues((prev) => ({ ...prev, amount: presetAmount.value }))
+    setLocal((prev) => ({ ...prev, amount: undefined }))
+    setEdited((prev) => ({ ...prev, amount: true }))
+    // Keyed on the pick, not the object, so a re-render doesn't re-apply it.
+  }, [presetAmount?.key])
 
   const id = (field: string) => `${idPrefix}-${field}`
 

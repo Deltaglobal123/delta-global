@@ -3159,6 +3159,88 @@
 
 /* ================================ QR block =============================== */
 
+/* First-deposit plans: three cards that fill in the amount below. */
+.plan-intro {
+  margin-bottom: 16px;
+}
+
+.deposit-plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.deposit-plan {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.deposit-plan:hover {
+  border-color: var(--accent-line);
+}
+
+.deposit-plan.is-chosen {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.deposit-plan-name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.deposit-plan-price {
+  font-size: clamp(26px, 3.4vw, 32px);
+  line-height: 1.1;
+  color: var(--text-strong);
+}
+
+.deposit-plan-body {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.deposit-plan-cta {
+  margin-top: auto;
+  padding-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.plan-terms {
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.plan-terms summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.plan-terms ul {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  list-style: disc;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+
 .deposit-layout {
   display: grid;
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
