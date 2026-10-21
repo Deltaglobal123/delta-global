@@ -3222,6 +3222,30 @@
   color: var(--accent);
 }
 
+/* Step two's header: which plan the QR and form below are for. */
+.plan-chosen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.plan-chosen > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plan-chosen-name {
+  font-size: 20px;
+  color: var(--text-strong);
+}
+
 .plan-terms {
   margin-top: 16px;
   font-size: 14px;

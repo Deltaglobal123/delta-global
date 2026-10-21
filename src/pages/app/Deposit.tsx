@@ -35,16 +35,20 @@ export function Deposit() {
   const [planId, setPlanId] = useState<string | null>(null)
   const [preset, setPreset] = useState<{ value: string; key: number } | null>(null)
 
-  // Plans are for a first deposit, so they show only once the history has
-  // loaded and come back empty — never while it is still unknown.
-  const isFirstDeposit =
-    !history.loading &&
-    !history.error &&
-    (history.meta?.total ?? history.items.length) === 0
+  // Step one is picking a plan; the QR and the form only appear after that.
+  const plan = DEPOSIT_PLANS.find((item) => item.id === planId) ?? null
 
   function choosePlan(id: string, amount: string) {
+    setSent(null)
     setPlanId(id)
     setPreset((prev) => ({ value: amount, key: (prev?.key ?? 0) + 1 }))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function changePlan() {
+    setPlanId(null)
+    setAlert(null)
+    setErrors({})
   }
 
   useEffect(() => {
@@ -103,29 +107,32 @@ export function Deposit() {
         lead="Scan the QR in your UPI app, pay, then tell us the reference. Our team matches it against the bank statement and credits your wallet."
       />
 
-      {isFirstDeposit && (
-        <AppSection title="First deposit plans">
+      {/* Up here rather than in the form, which is gone once a payment is in. */}
+      {sent && (
+        <p className="form-success" role="status">
+          {sent}
+        </p>
+      )}
+
+      {!plan ? (
+        <AppSection title="Choose a plan">
           <p className="app-muted plan-intro">
-            Pick a plan to fill in your deposit amount, then scan the QR and pay.
+            Pick a plan to continue. You will then scan the QR, pay, and submit
+            your payment reference.
           </p>
 
           <div className="deposit-plans">
-            {DEPOSIT_PLANS.map((plan) => (
+            {DEPOSIT_PLANS.map((item) => (
               <button
-                key={plan.id}
+                key={item.id}
                 type="button"
-                className={
-                  planId === plan.id ? 'deposit-plan is-chosen' : 'deposit-plan'
-                }
-                aria-pressed={planId === plan.id}
-                onClick={() => choosePlan(plan.id, plan.amount)}
+                className="deposit-plan"
+                onClick={() => choosePlan(item.id, item.amount)}
               >
-                <span className="deposit-plan-name">{plan.name}</span>
-                <strong className="deposit-plan-price">{plan.price}</strong>
-                <span className="deposit-plan-body">{plan.body}</span>
-                <span className="deposit-plan-cta">
-                  {planId === plan.id ? 'Selected' : 'Choose plan'}
-                </span>
+                <span className="deposit-plan-name">{item.name}</span>
+                <strong className="deposit-plan-price">{item.price}</strong>
+                <span className="deposit-plan-body">{item.body}</span>
+                <span className="deposit-plan-cta">Choose plan →</span>
               </button>
             ))}
           </div>
@@ -139,99 +146,113 @@ export function Deposit() {
             </ul>
           </details>
         </AppSection>
-      )}
+      ) : (
+        <>
+          <div className="plan-chosen">
+            <div>
+              <span className="deposit-plan-name">Selected plan</span>
+              <strong className="plan-chosen-name">
+                {plan.name} · {plan.price}
+              </strong>
+            </div>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={changePlan}
+              disabled={busy}
+            >
+              Change plan
+            </button>
+          </div>
 
-      <div className="deposit-layout">
-        <AppSection title="Scan and pay">
-          {qrLoading ? (
-            <p className="app-muted">Loading the payment code…</p>
-          ) : qr ? (
-            <div className="qr-block">
-              <img
-                className="qr-image"
-                src={qr.image_url}
-                alt={`UPI QR code for ${qr.label}`}
+          <div className="deposit-layout">
+            <AppSection title="Scan and pay">
+              {qrLoading ? (
+                <p className="app-muted">Loading the payment code…</p>
+              ) : qr ? (
+                <div className="qr-block">
+                  <img
+                    className="qr-image"
+                    src={qr.image_url}
+                    alt={`UPI QR code for ${qr.label}`}
+                  />
+                  <dl className="detail-grid">
+                    <div>
+                      <dt>UPI ID</dt>
+                      <dd className="mono">{qr.upi_id}</dd>
+                    </div>
+                    <div>
+                      <dt>Account</dt>
+                      <dd>{qr.label}</dd>
+                    </div>
+                  </dl>
+                  <p className="app-muted">
+                    Pay whatever you like, then fill in the form with the exact
+                    reference your UPI app gave you.
+                  </p>
+                  <div className="qr-support">
+                    <span className="qr-support-text">Facing any issue or need assistance?</span>
+                    <a
+                      href={getWhatsAppSupportUrl('Hello Delta Global Support, I need help with my deposit.')}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="support-whatsapp-btn"
+                    >
+                      <WhatsAppIcon className="whatsapp-btn-icon" />
+                      <span>Contact Support on WhatsApp</span>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="qr-unavailable">
+                  <QrIcon className="qr-placeholder-icon" />
+                  <strong>Payments are unavailable right now</strong>
+                  <p>
+                    No payment code has been published yet. Please check back shortly
+                    or get in touch.
+                  </p>
+                  <div className="qr-support">
+                    <a
+                      href={getWhatsAppSupportUrl('Hello Delta Global Support, I need help with making a deposit.')}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="support-whatsapp-btn"
+                    >
+                      <WhatsAppIcon className="whatsapp-btn-icon" />
+                      <span>Contact Support on WhatsApp</span>
+                    </a>
+                  </div>
+                </div>
+              )}
+            </AppSection>
+
+            <AppSection title="I have paid">
+              {alert && (
+                <p className="form-alert" role="alert">
+                  {alert}
+                </p>
+              )}
+
+              <UpiPaymentForm
+                key={formKey}
+                idPrefix="deposit"
+                presetAmount={preset}
+                amountHint="Digits only, no commas or symbols."
+                serverErrors={errors}
+                busy={busy}
+                submitLabel="Submit payment details"
+                busyLabel="Submitting…"
+                footNote={
+                  <p className="app-muted">
+                    Nothing reaches your wallet until our team verifies the payment.
+                  </p>
+                }
+                onSubmit={onSubmit}
               />
-              <dl className="detail-grid">
-                <div>
-                  <dt>UPI ID</dt>
-                  <dd className="mono">{qr.upi_id}</dd>
-                </div>
-                <div>
-                  <dt>Account</dt>
-                  <dd>{qr.label}</dd>
-                </div>
-              </dl>
-              <p className="app-muted">
-                Pay whatever you like, then fill in the form with the exact
-                reference your UPI app gave you.
-              </p>
-              <div className="qr-support">
-                <span className="qr-support-text">Facing any issue or need assistance?</span>
-                <a
-                  href={getWhatsAppSupportUrl('Hello Delta Global Support, I need help with my deposit.')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="support-whatsapp-btn"
-                >
-                  <WhatsAppIcon className="whatsapp-btn-icon" />
-                  <span>Contact Support on WhatsApp</span>
-                </a>
-              </div>
-            </div>
-          ) : (
-            <div className="qr-unavailable">
-              <QrIcon className="qr-placeholder-icon" />
-              <strong>Payments are unavailable right now</strong>
-              <p>
-                No payment code has been published yet. Please check back shortly
-                or get in touch.
-              </p>
-              <div className="qr-support">
-                <a
-                  href={getWhatsAppSupportUrl('Hello Delta Global Support, I need help with making a deposit.')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="support-whatsapp-btn"
-                >
-                  <WhatsAppIcon className="whatsapp-btn-icon" />
-                  <span>Contact Support on WhatsApp</span>
-                </a>
-              </div>
-            </div>
-          )}
-        </AppSection>
-
-        <AppSection title="I have paid">
-          {sent && (
-            <p className="form-success" role="status">
-              {sent}
-            </p>
-          )}
-          {alert && (
-            <p className="form-alert" role="alert">
-              {alert}
-            </p>
-          )}
-
-          <UpiPaymentForm
-            key={formKey}
-            idPrefix="deposit"
-            presetAmount={preset}
-            amountHint="Digits only, no commas or symbols."
-            serverErrors={errors}
-            busy={busy}
-            submitLabel="Submit payment details"
-            busyLabel="Submitting…"
-            footNote={
-              <p className="app-muted">
-                Nothing reaches your wallet until our team verifies the payment.
-              </p>
-            }
-            onSubmit={onSubmit}
-          />
-        </AppSection>
-      </div>
+            </AppSection>
+          </div>
+        </>
+      )}
 
       <AppSection title="Your deposits">
         {history.error && (
