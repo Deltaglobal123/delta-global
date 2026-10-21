@@ -8,6 +8,7 @@ import { AppPageHead } from '../../components/app/AppPageHead'
 import { AppSection } from '../../components/app/AppSection'
 import { StatusPill } from '../../components/app/StatusPill'
 import { TradingQuizModal } from '../../components/app/TradingQuizModal'
+import { MarketPulseChart } from '../../components/app/MarketPulseChart'
 import { ArrowIcon } from '../../icons'
 
 /**
@@ -125,6 +126,10 @@ export function StartProject() {
               </div>
               <StatusPill status={trade.status} label={trade.status_label} />
             </div>
+          )}
+
+          {(trade?.status === 'pending' || trade?.status === 'running') && (
+            <MarketPulseChart />
           )}
 
           <div className="start-actions">

@@ -3,7 +3,7 @@ import { loadQuiz, type QuizQuestion } from '../../lib/trading-quiz'
 import { CheckIcon } from '../../icons'
 
 /** How long "Next question" waits before the next card appears. */
-const NEXT_QUESTION_DELAY_MS = 2000
+const NEXT_QUESTION_DELAY_MS = 5000
 
 type Props = {
   /** What will be committed once the last question is answered. */
@@ -137,13 +137,21 @@ export function TradingQuizModal({
         </header>
 
         <div className="quiz-body">
-          <h2 className="quiz-question" id="quiz-question" aria-live="polite">
-            {current
-              ? current.question
-              : advancing
-                ? 'Getting your next question ready…'
-                : 'Getting your questions ready…'}
-          </h2>
+          {current ? (
+            <h2 className="quiz-question" id="quiz-question">
+              {current.question}
+            </h2>
+          ) : (
+            // Stands in for the question and its buttons while one is loading.
+            <div className="quiz-loading" role="status">
+              <span className="spinner" aria-hidden="true" />
+              <h2 className="quiz-question" id="quiz-question">
+                {advancing
+                  ? 'Loading next question…'
+                  : 'Loading questions…'}
+              </h2>
+            </div>
+          )}
 
           {alert && (
             <p className="form-alert" role="alert">
@@ -151,19 +159,21 @@ export function TradingQuizModal({
             </p>
           )}
 
-          <div className="quiz-options">
-            {(current?.options ?? ['Yes', 'No']).map((choice) => (
-              <button
-                key={choice}
-                type="button"
-                className={optionClass(choice)}
-                onClick={() => answer(choice)}
-                disabled={!current || locked || busy}
-              >
-                {choice}
-              </button>
-            ))}
-          </div>
+          {current && (
+            <div className="quiz-options">
+              {current.options.map((choice) => (
+                <button
+                  key={choice}
+                  type="button"
+                  className={optionClass(choice)}
+                  onClick={() => answer(choice)}
+                  disabled={locked || busy}
+                >
+                  {choice}
+                </button>
+              ))}
+            </div>
+          )}
 
           {current && picked !== null && current.required && !correct && (
             <p className="quiz-verdict">
