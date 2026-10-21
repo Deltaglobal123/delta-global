@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './App.css'
 import { Layout } from './components/Layout'
+import { WhatsAppFloat } from './components/WhatsAppFloat'
 import { RequireAuth } from './components/app/RequireAuth'
 import { AuthProvider } from './lib/auth'
 import { Home } from './pages/Home'
@@ -56,6 +57,8 @@ export default function App() {
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
+        {/* Outside the routes, so it is on every page — public and account. */}
+        <WhatsAppFloat />
       </AuthProvider>
     </BrowserRouter>
   )
