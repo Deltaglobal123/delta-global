@@ -9,6 +9,7 @@ import { AppPageHead } from '../../components/app/AppPageHead'
 import { AppSection } from '../../components/app/AppSection'
 import { Pager } from '../../components/app/Pager'
 import { StatusPill } from '../../components/app/StatusPill'
+import { MarketPulseChart } from '../../components/app/MarketPulseChart'
 import { ArrowIcon } from '../../icons'
 
 export function Trading() {
@@ -128,6 +129,10 @@ export function Trading() {
                 </p>
               </div>
             </div>
+
+            {(trade.status === 'pending' || trade.status === 'running') && (
+              <MarketPulseChart />
+            )}
 
             <dl className="detail-grid">
               <div>

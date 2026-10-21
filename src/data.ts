@@ -77,7 +77,7 @@ export const PRICING_INTRO = {
 /* ---------------------------------- hero ---------------------------------- */
 
 export const HERO = {
-  badge: 'AI-powered trading platform',
+  badge: 'Smart market intelligence',
   title: 'Put AI-powered strategies to work for you',
   gradient: 'Built for data. Designed for control.',
   body: [
