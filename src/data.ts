@@ -40,38 +40,54 @@ export type Plan = {
   featured?: boolean
 }
 
+/** Every plan opens the whole platform; they differ only in the amount. */
+const PLAN_FEATURES = [
+  'AI market analysis',
+  'Strategy library and activation',
+  'Portfolio dashboard',
+  'Transaction history',
+  'Performance analytics',
+  'Configurable risk controls',
+]
+
 /**
- * A single plan at ₹999. The three earlier tiers each carried their own
- * "Guaranteed profit return" figure (25k+ / 65k+ / 1L+) tied to their own price;
- * none of those figures transfers to a ₹999 plan, so no return figure is stated
- * here. Add one only if it is a real, contractual number — and see the
- * [REVIEW REQUIRED] note in RISK_DISCLOSURE first.
+ * The same three plans as the deposit screen (lib/deposit-plans.ts) — keep the
+ * ids, names and prices in step, since "Start now" opens that screen with the
+ * plan already chosen.
  *
- * The rest of the plan renders from this array, so adding tiers back restores
- * the multi-card grid and the comparison table without further edits.
+ * No return figure is stated for any of them. Add one only if it is a real,
+ * contractual number — and see the [REVIEW REQUIRED] note in RISK_DISCLOSURE
+ * first.
  */
 export const PLANS: Plan[] = [
+  {
+    id: 'starter',
+    name: 'Starter',
+    price: '499',
+    tagline: 'The minimum for one AI trading run.',
+    features: PLAN_FEATURES,
+  },
   {
     id: 'standard',
     name: 'Standard',
     price: '999',
-    tagline: 'Full platform access. One price.',
+    tagline: 'Room for a larger first run.',
     featured: true,
-    features: [
-      'AI market analysis',
-      'Strategy library and activation',
-      'Portfolio dashboard',
-      'Transaction history',
-      'Performance analytics',
-      'Configurable risk controls',
-    ],
+    features: PLAN_FEATURES,
+  },
+  {
+    id: 'plus',
+    name: 'Plus',
+    price: '1,499',
+    tagline: 'For customers ready to commit more.',
+    features: PLAN_FEATURES,
   },
 ]
 
 export const PRICING_INTRO = {
   badge: 'Pricing',
   heading: 'Simple pricing. Clear access.',
-  body: 'One plan with access to the tools and features you need — analysis, strategies, dashboard and risk controls.',
+  body: 'Three plans, each with access to the tools and features you need — analysis, strategies, dashboard and risk controls.',
 }
 
 /* ---------------------------------- hero ---------------------------------- */

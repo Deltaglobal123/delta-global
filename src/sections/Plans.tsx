@@ -35,7 +35,9 @@ function PlanCard({
 
       <Link
         className={`btn ${plan.featured ? 'btn-primary' : 'btn-ghost'} plan-cta`}
-        to={`/get-started?plan=${plan.id}`}
+        // Straight to the deposit screen with this plan chosen. A signed-out
+        // visitor is sent to /login first and lands back there.
+        to={`/app/deposit?plan=${plan.id}`}
       >
         Start now
         <ArrowIcon />

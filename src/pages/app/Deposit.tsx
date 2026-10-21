@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { api, ApiError } from '../../lib/api'
 import { useStatus } from '../../lib/status-context'
 import { useList } from '../../lib/useList'
@@ -32,8 +33,14 @@ export function Deposit() {
   // The form owns its fields, so a successful submit clears it by remounting.
   const [formKey, setFormKey] = useState(0)
 
-  const [planId, setPlanId] = useState<string | null>(null)
-  const [preset, setPreset] = useState<{ value: string; key: number } | null>(null)
+  // A pricing card's "Start now" links here with ?plan=, which skips step one.
+  const [params] = useSearchParams()
+  const linked = DEPOSIT_PLANS.find((item) => item.id === params.get('plan'))
+
+  const [planId, setPlanId] = useState<string | null>(linked?.id ?? null)
+  const [preset, setPreset] = useState<{ value: string; key: number } | null>(
+    linked ? { value: linked.amount, key: 1 } : null,
+  )
 
   // Step one is picking a plan; the QR and the form only appear after that.
   const plan = DEPOSIT_PLANS.find((item) => item.id === planId) ?? null

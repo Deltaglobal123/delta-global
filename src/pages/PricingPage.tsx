@@ -8,21 +8,24 @@ import { CtaBand } from '../sections/CtaBand'
 import { useReveal } from '../useReveal'
 
 /**
- * One entry per plan, in PLANS order. Rows are rendered by walking PLANS rather
- * than `values`, so a shorter or longer plan list degrades to "—" instead of
- * throwing.
+ * One entry per plan, in PLANS order. "Loss cover" was dropped: it promised to
+ * make good any loss, which is a guarantee the site no longer makes.
  */
 const COMPARISON = [
   { label: 'Trading time period', values: ['60 min'] },
-  { label: 'Loss cover', values: ['100%'] },
   { label: 'Personalized career roadmap', values: ['Included'] },
 ]
 
 function Comparison() {
   const ref = useReveal<HTMLDivElement>()
 
-  // A side-by-side table needs at least two sides.
-  if (PLANS.length < 2) return null
+  // A side-by-side table needs at least two sides, and a value for every plan
+  // in every row — a column of "—" would read as a missing feature.
+  if (
+    PLANS.length < 2 ||
+    COMPARISON.some((row) => row.values.length !== PLANS.length)
+  )
+    return null
 
   return (
     <section className="section">
