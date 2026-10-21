@@ -1227,6 +1227,54 @@
   animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.3, 1) 0.15s both;
 }
 
+/* The second block of the home page: the ways in, set apart from the hero copy
+   in a card of their own. */
+.hero-start {
+  padding: clamp(8px, 2vw, 24px) 0 clamp(48px, 7vw, 88px);
+}
+
+.hero-start-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: clamp(28px, 5vw, 52px) clamp(20px, 4vw, 48px);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(70% 90% at 50% 0%, var(--accent-soft), transparent 70%),
+    var(--surface);
+  text-align: center;
+}
+
+.hero-start-card h2 {
+  font-size: clamp(26px, 3.6vw, 38px);
+  max-width: 22ch;
+}
+
+.hero-start-body {
+  max-width: 56ch;
+  font-size: clamp(15px, 1.5vw, 17px);
+}
+
+/* The card reveals as one piece, so its parts skip their own load-in. */
+.hero-start-card .hero-actions,
+.hero-start-card .trust {
+  animation: none;
+}
+
+.hero-start-card .hero-disclaimer {
+  margin-top: 6px;
+}
+
+@media (max-width: 560px) {
+  .hero-start-card .hero-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .section-foot {
   margin-top: 36px;
   text-align: center;

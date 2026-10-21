@@ -78,7 +78,7 @@ export const PRICING_INTRO = {
 
 export const HERO = {
   badge: 'AI-powered trading platform',
-  title: 'Trade smarter with AI-powered strategies',
+  title: 'Put AI-powered strategies to work for you',
   gradient: 'Built for data. Designed for control.',
   body: [
     'Use intelligent market analysis, automated strategies and real-time portfolio insights to make your trading workflow more systematic.',
@@ -91,6 +91,13 @@ export const HERO = {
   ],
   disclaimer:
     'Trading involves market risk. Past performance or backtested results do not guarantee future performance.',
+}
+
+/** The block under the hero that holds the ways in. */
+export const HERO_START = {
+  badge: 'Get started',
+  heading: 'Choose how you want to begin',
+  body: 'Start an AI trading run, see how the platform works step by step, or set up a project with your wallet balance.',
 }
 
 export const HERO_STATS = [

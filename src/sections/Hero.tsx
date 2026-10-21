@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
-import { HERO, HERO_STATS } from '../data'
+import { HERO, HERO_START, HERO_STATS } from '../data'
 import { HeroArt } from '../art'
 import { ArrowIcon, CheckIcon } from '../icons'
 import { useReveal } from '../useReveal'
@@ -27,6 +27,7 @@ function Stat({
   )
 }
 
+/** The headline and what the platform does — nothing to click yet. */
 export function Hero() {
   return (
     <section className="hero">
@@ -46,37 +47,54 @@ export function Hero() {
             {text}
           </p>
         ))}
+      </div>
+    </section>
+  )
+}
 
-        <div className="hero-actions">
-          {/* Straight into the trading flow. A signed-out visitor is bounced to
-              /login by RequireAuth, which carries this path along so the sign-in
-              lands them back here rather than on the dashboard. */}
-          <Link className="btn btn-primary btn-lg" to="/app/trading">
-            Start trading
-            <ArrowIcon />
-          </Link>
-          <Link className="btn btn-ghost btn-lg" to="/#how-it-works">
-            Explore how it works
-            <ArrowIcon />
-          </Link>
-          {/* Same guard as "Start trading": a signed-out visitor is sent to
-              /login and lands back here once they are in. */}
-          <Link className="btn btn-primary btn-lg" to="/app/start">
-            Start project
-            <ArrowIcon />
-          </Link>
+/** The second section: the ways in, then the preview and the headline stats. */
+export function HeroStart() {
+  const ref = useReveal<HTMLDivElement>()
+
+  return (
+    <section className="hero-start">
+      <div className="shell">
+        <div className="hero-start-card reveal" ref={ref}>
+          <span className="eyebrow">{HERO_START.badge}</span>
+          <h2>{HERO_START.heading}</h2>
+          <p className="hero-start-body">{HERO_START.body}</p>
+
+          <div className="hero-actions">
+            {/* Straight into the trading flow. A signed-out visitor is bounced
+                to /login by RequireAuth, which carries this path along so the
+                sign-in lands them back here rather than on the dashboard. */}
+            <Link className="btn btn-primary btn-lg" to="/app/trading">
+              Start AI trading
+              <ArrowIcon />
+            </Link>
+            <Link className="btn btn-ghost btn-lg" to="/#how-it-works">
+              Explore how it works
+              <ArrowIcon />
+            </Link>
+            {/* Same guard as "Start AI trading": a signed-out visitor is sent
+                to /login and lands back here once they are in. */}
+            <Link className="btn btn-primary btn-lg" to="/app/start">
+              Start project
+              <ArrowIcon />
+            </Link>
+          </div>
+
+          <ul className="trust">
+            {HERO.trust.map((item) => (
+              <li key={item}>
+                <CheckIcon />
+                {item}
+              </li>
+            ))}
+          </ul>
+
+          <p className="hero-disclaimer">{HERO.disclaimer}</p>
         </div>
-
-        <ul className="trust">
-          {HERO.trust.map((item) => (
-            <li key={item}>
-              <CheckIcon />
-              {item}
-            </li>
-          ))}
-        </ul>
-
-        <p className="hero-disclaimer">{HERO.disclaimer}</p>
 
         <figure className="hero-art">
           <HeroArt />
