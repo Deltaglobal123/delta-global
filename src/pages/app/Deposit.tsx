@@ -136,9 +136,17 @@ export function Deposit() {
                 className="deposit-plan"
                 onClick={() => choosePlan(item.id, item.amount)}
               >
+                <span className="deposit-plan-badge">100% Bonus</span>
                 <span className="deposit-plan-name">{item.name}</span>
                 <strong className="deposit-plan-price">{item.price}</strong>
                 <span className="deposit-plan-body">{item.body}</span>
+                <span className="deposit-plan-bonus">
+                  <span>You receive</span>
+                  <strong>{item.total}</strong>
+                  <em>
+                    {item.price} deposit + {item.bonus} bonus
+                  </em>
+                </span>
                 <span className="deposit-plan-cta">Choose plan →</span>
               </button>
             ))}
@@ -161,6 +169,10 @@ export function Deposit() {
               <strong className="plan-chosen-name">
                 {plan.name} · {plan.price}
               </strong>
+              <span className="plan-chosen-bonus">
+                You will receive <strong>{plan.total}</strong> ({plan.price} +{' '}
+                {plan.bonus} bonus) in your wallet after verification. T&amp;C apply.
+              </span>
             </div>
             <button
               type="button"

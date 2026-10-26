@@ -38,6 +38,8 @@ export type Plan = {
   tagline: string
   features: string[]
   featured?: boolean
+  /** Total wallet credit including 100% first-deposit bonus. */
+  total?: string
 }
 
 /** Every plan opens the whole platform; they differ only in the amount. */
@@ -65,6 +67,7 @@ export const PLANS: Plan[] = [
     name: 'Starter',
     price: '499',
     tagline: 'The minimum for one AI trading run.',
+    total: '₹998',
     features: PLAN_FEATURES,
   },
   {
@@ -72,6 +75,7 @@ export const PLANS: Plan[] = [
     name: 'Standard',
     price: '999',
     tagline: 'Room for a larger first run.',
+    total: '₹1,998',
     featured: true,
     features: PLAN_FEATURES,
   },
@@ -80,6 +84,7 @@ export const PLANS: Plan[] = [
     name: 'Plus',
     price: '1,499',
     tagline: 'For customers ready to commit more.',
+    total: '₹2,998',
     features: PLAN_FEATURES,
   },
 ]

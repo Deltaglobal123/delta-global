@@ -24,6 +24,7 @@ function PlanCard({
       {showBadge && <span className="plan-badge">Most popular</span>}
 
       <header className="plan-head">
+        <span className="plan-bonus-badge">100% bonus on first deposit</span>
         <h3 className="plan-name">{plan.name}</h3>
         <p className="plan-tagline">{plan.tagline}</p>
       </header>
@@ -32,6 +33,15 @@ function PlanCard({
         <span className="currency">₹</span>
         <span className="amount">{plan.price}</span>
       </p>
+
+      {plan.total && (
+        <p className="plan-total">
+          You receive <strong>{plan.total}</strong> in your wallet
+          <span className="plan-total-note">
+            ₹{plan.price} deposit + ₹{plan.price} bonus · First deposit only · T&amp;C apply
+          </span>
+        </p>
+      )}
 
       <Link
         className={`btn ${plan.featured ? 'btn-primary' : 'btn-ghost'} plan-cta`}
