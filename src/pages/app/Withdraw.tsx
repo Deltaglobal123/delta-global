@@ -584,8 +584,6 @@ export function Withdraw() {
         <ChargePopup
           key={steps[index].charge_id}
           step={steps[index]}
-          steps={steps}
-          paidChargeIds={new Set(Object.keys(paid).map(Number))}
           withdrawalAmount={lockedAmount}
           withdrawalLabel={withdrawalLabel}
           isLast={

@@ -6,10 +6,7 @@ import type { UpiPaymentErrors, UpiPaymentValues } from '../../lib/upi-payment'
 
 type Props = {
   step: WithdrawalChargeStep
-  /** Every step in the walk, so the ones already settled can be shown as done. */
-  steps: WithdrawalChargeStep[]
   /** Charge ids already paid — from this session or an abandoned earlier one. */
-  paidChargeIds: Set<number>
   /**
    * The withdrawal amount as the customer typed it. This — not the charge
    * figure — is what the claim carries, because it is how the server
@@ -36,8 +33,6 @@ type Props = {
  */
 export function ChargePopup({
   step,
-  steps,
-  paidChargeIds,
   withdrawalAmount,
   withdrawalLabel,
   isLast,
