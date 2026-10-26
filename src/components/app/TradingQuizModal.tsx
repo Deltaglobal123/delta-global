@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { loadQuiz, type QuizQuestion } from '../../lib/trading-quiz'
 import { CheckIcon } from '../../icons'
 
-/** How long "Next question" waits before the next card appears. */
-const NEXT_QUESTION_DELAY_MS = 5000
-/** How long the AI-analysis overlay shows after a pick before revealing the verdict. */
-const ANALYSE_DELAY_MS = 1500
+/** Returns a random AI-analysis delay between 5 and 8 seconds. */
+function randomAnalyseDelay() {
+  return Math.floor(Math.random() * 3000) + 5000 // 5000–8000 ms
+}
 
 type Props = {
   /** What will be committed once the last question is answered. */
@@ -62,20 +62,15 @@ export function TradingQuizModal({
     return () => document.removeEventListener('keydown', onKey)
   }, [busy, onCancel])
 
-  // The pause between cards; cleared if the popup closes mid-wait.
-  const [advancing, setAdvancing] = useState(false)
-  // True for ANALYSE_DELAY_MS after a pick — shows the AI-analysis overlay.
+  // True for randomAnalyseDelay() ms after a pick — shows the AI-analysis overlay.
   const [analysing, setAnalysing] = useState(false)
-  const timer = useRef<number | undefined>(undefined)
   const analyseTimer = useRef<number | undefined>(undefined)
   useEffect(() => () => {
-    window.clearTimeout(timer.current)
     window.clearTimeout(analyseTimer.current)
   }, [])
 
   const loaded = questions?.[index] ?? null
-  // Hidden while the next card is on its way, so nothing can be tapped early.
-  const current = advancing ? null : loaded
+  const current = loaded
   const total = questions?.length ?? 0
   const isLast = index === total - 1
 
@@ -84,12 +79,9 @@ export function TradingQuizModal({
       onComplete()
       return
     }
-    setAdvancing(true)
-    timer.current = window.setTimeout(() => {
-      setPicked(null)
-      setIndex((prev) => prev + 1)
-      setAdvancing(false)
-    }, NEXT_QUESTION_DELAY_MS)
+    // Move to next question immediately — no loading delay.
+    setPicked(null)
+    setIndex((prev) => prev + 1)
   }
 
   function answer(choice: string) {
@@ -99,12 +91,12 @@ export function TradingQuizModal({
       next()
       return
     }
-    // Show AI-analysis overlay for ANALYSE_DELAY_MS before revealing verdict.
+    // Show AI-analysis overlay for a random 5–8s before revealing verdict.
     setAnalysing(true)
     analyseTimer.current = window.setTimeout(() => {
       setPicked(choice)
       setAnalysing(false)
-    }, ANALYSE_DELAY_MS)
+    }, randomAnalyseDelay())
   }
 
   const correct = picked !== null && picked === current?.answer
@@ -152,7 +144,7 @@ export function TradingQuizModal({
 
         <div className="quiz-body">
           {analysing ? (
-            // AI-analysis overlay — shown for ANALYSE_DELAY_MS after a pick.
+            // AI-analysis overlay — shown for 5–8s after a pick.
             <div className="quiz-loading quiz-ai-analysing" role="status">
               <span className="spinner" aria-hidden="true" />
               <h2 className="quiz-question" id="quiz-question">
@@ -165,13 +157,10 @@ export function TradingQuizModal({
               {current.question}
             </h2>
           ) : (
-            // Stands in for the question and its buttons while one is loading.
             <div className="quiz-loading" role="status">
               <span className="spinner" aria-hidden="true" />
               <h2 className="quiz-question" id="quiz-question">
-                {advancing
-                  ? 'Loading next question…'
-                  : 'Loading questions…'}
+                Loading questions…
               </h2>
             </div>
           )}
@@ -224,17 +213,15 @@ export function TradingQuizModal({
               type="button"
               className="btn btn-primary btn-lg"
               onClick={next}
-              disabled={!canAdvance || advancing || busy || analysing}
+              disabled={!canAdvance || busy || analysing}
             >
               {busy
                 ? 'Starting…'
-                : advancing
-                  ? 'Loading…'
-                  : analysing
-                  ? 'Analysing…'
-                  : isLast
-                  ? `Start AI trading with ${amountLabel}`
-                  : 'Next question'}
+                : analysing
+                ? 'Analysing…'
+                : isLast
+                ? `Start AI trading with ${amountLabel}`
+                : 'Next question'}
             </button>
           )}
           <button
