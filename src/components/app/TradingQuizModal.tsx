@@ -4,6 +4,8 @@ import { CheckIcon } from '../../icons'
 
 /** How long "Next question" waits before the next card appears. */
 const NEXT_QUESTION_DELAY_MS = 5000
+/** How long the AI-analysis overlay shows after a pick before revealing the verdict. */
+const ANALYSE_DELAY_MS = 1500
 
 type Props = {
   /** What will be committed once the last question is answered. */
@@ -62,8 +64,14 @@ export function TradingQuizModal({
 
   // The pause between cards; cleared if the popup closes mid-wait.
   const [advancing, setAdvancing] = useState(false)
+  // True for ANALYSE_DELAY_MS after a pick — shows the AI-analysis overlay.
+  const [analysing, setAnalysing] = useState(false)
   const timer = useRef<number | undefined>(undefined)
-  useEffect(() => () => window.clearTimeout(timer.current), [])
+  const analyseTimer = useRef<number | undefined>(undefined)
+  useEffect(() => () => {
+    window.clearTimeout(timer.current)
+    window.clearTimeout(analyseTimer.current)
+  }, [])
 
   const loaded = questions?.[index] ?? null
   // Hidden while the next card is on its way, so nothing can be tapped early.
@@ -85,18 +93,24 @@ export function TradingQuizModal({
   }
 
   function answer(choice: string) {
+    if (analysing) return
     // No usable right answer means nothing to reveal — the tap moves on.
     if (current && current.answer === null && !isLast) {
       next()
       return
     }
-    setPicked(choice)
+    // Show AI-analysis overlay for ANALYSE_DELAY_MS before revealing verdict.
+    setAnalysing(true)
+    analyseTimer.current = window.setTimeout(() => {
+      setPicked(choice)
+      setAnalysing(false)
+    }, ANALYSE_DELAY_MS)
   }
 
   const correct = picked !== null && picked === current?.answer
   // A required question stays open until its answer is picked.
   const locked = picked !== null && !current?.required
-  const canAdvance = picked !== null && (!current?.required || correct)
+  const canAdvance = picked !== null && (!current?.required || correct) && !analysing
 
   /** Once a pick is locked in, the right answer turns green and a wrong pick red. */
   function optionClass(choice: string) {
@@ -137,7 +151,16 @@ export function TradingQuizModal({
         </header>
 
         <div className="quiz-body">
-          {current ? (
+          {analysing ? (
+            // AI-analysis overlay — shown for ANALYSE_DELAY_MS after a pick.
+            <div className="quiz-loading quiz-ai-analysing" role="status">
+              <span className="spinner" aria-hidden="true" />
+              <h2 className="quiz-question" id="quiz-question">
+                AI is analysing your answer…
+              </h2>
+              <p className="quiz-ai-sub">Evaluating your response</p>
+            </div>
+          ) : current ? (
             <h2 className="quiz-question" id="quiz-question">
               {current.question}
             </h2>
@@ -159,7 +182,7 @@ export function TradingQuizModal({
             </p>
           )}
 
-          {current && (
+          {current && !analysing && (
             <div className="quiz-options">
               {current.options.map((choice) => (
                 <button
@@ -167,7 +190,7 @@ export function TradingQuizModal({
                   type="button"
                   className={optionClass(choice)}
                   onClick={() => answer(choice)}
-                  disabled={locked || busy}
+                  disabled={locked || busy || analysing}
                 >
                   {choice}
                 </button>
@@ -201,12 +224,14 @@ export function TradingQuizModal({
               type="button"
               className="btn btn-primary btn-lg"
               onClick={next}
-              disabled={!canAdvance || advancing || busy}
+              disabled={!canAdvance || advancing || busy || analysing}
             >
               {busy
                 ? 'Starting…'
                 : advancing
                   ? 'Loading…'
+                  : analysing
+                  ? 'Analysing…'
                   : isLast
                   ? `Start AI trading with ${amountLabel}`
                   : 'Next question'}

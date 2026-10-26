@@ -3788,6 +3788,52 @@
   color: var(--text-dim);
 }
 
+/* AI-analysis state — richer visual than the plain "loading" spinner */
+.quiz-ai-analysing {
+  gap: 18px;
+  min-height: 160px;
+}
+
+.quiz-ai-analysing .spinner {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+  border-top-color: var(--accent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 40%, transparent);
+  animation: spin 0.9s linear infinite;
+}
+
+.quiz-ai-analysing .quiz-question {
+  font-size: 18px;
+  font-weight: 600;
+  background: linear-gradient(90deg, var(--accent), #a8ffdd, var(--accent));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: ai-shimmer 1.6s linear infinite;
+  color: var(--accent);
+}
+
+.quiz-ai-sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  animation: ai-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ai-shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes ai-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
+
+
 .quiz-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
