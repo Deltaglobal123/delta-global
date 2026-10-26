@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { WithdrawalChargeStep } from '../../lib/types'
 import { UpiPaymentForm } from './UpiPaymentForm'
 import type { UpiPaymentErrors, UpiPaymentValues } from '../../lib/upi-payment'
-import { CheckIcon } from '../../icons'
+
 
 type Props = {
   step: WithdrawalChargeStep
@@ -86,9 +86,6 @@ export function ChargePopup({
       >
         <header className="quiz-head">
           <div>
-            <span className="quiz-step">
-              Step {step.step} of {step.step_count}
-            </span>
             <h2 className="charge-title" id="charge-title">
               {step.title}
             </h2>
@@ -107,36 +104,7 @@ export function ChargePopup({
           </button>
         </header>
 
-        <div className="quiz-progress" aria-hidden="true">
-          <span style={{ width: `${(step.step / step.step_count) * 100}%` }} />
-        </div>
 
-        {steps.length > 1 && (
-          <ol className="charge-trail">
-            {steps.map((entry) => {
-              const done = paidChargeIds.has(entry.charge_id)
-              const current = entry.charge_id === step.charge_id
-              return (
-                <li
-                  key={entry.charge_id}
-                  className={
-                    current
-                      ? 'is-current'
-                      : done
-                        ? 'is-done'
-                        : undefined
-                  }
-                >
-                  {done && !current ? <CheckIcon /> : <span>{entry.step}</span>}
-                  <span className="charge-trail-title">{entry.title}</span>
-                  {done && !current && (
-                    <span className="charge-trail-note">already paid</span>
-                  )}
-                </li>
-              )
-            })}
-          </ol>
-        )}
 
         <div className="quiz-body charge-body">
           <div className="charge-amount">
@@ -206,14 +174,15 @@ export function ChargePopup({
               fixedAmount={withdrawalAmount}
               fixedAmountLabel={step.amount}
               amountLabel="Amount to pay"
+              referenceOptional
               serverErrors={fieldErrors}
               busy={busy || cooling}
               submitLabel={isLast ? 'Paid → Submit' : 'Paid → Continue'}
               busyLabel={cooling ? 'Please wait a moment…' : 'Recording…'}
               footNote={
                 <p className="app-muted">
-                  Use the reference from this payment only — each charge needs
-                  its own UTR.
+                  If you add a UTR, use the reference from this payment only —
+                  the same UTR can't be used on two charges.
                 </p>
               }
               onSubmit={onPaid}

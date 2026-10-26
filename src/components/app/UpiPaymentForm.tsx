@@ -34,6 +34,11 @@ type Props = {
   fixedAmountLabel?: string
   amountLabel?: string
   amountHint?: ReactNode
+  /**
+   * The UTR may be left empty — a withdrawal charge. One that is typed still
+   * has to be 6 to 60 characters. A deposit always needs it.
+   */
+  referenceOptional?: boolean
   /** Field errors the API sent back. Each clears as its field is edited. */
   serverErrors?: UpiPaymentErrors
   busy: boolean
@@ -57,6 +62,7 @@ export function UpiPaymentForm({
   fixedAmountLabel,
   amountLabel = 'Amount paid (₹)',
   amountHint,
+  referenceOptional = false,
   serverErrors,
   busy,
   submitLabel,
@@ -117,9 +123,11 @@ export function UpiPaymentForm({
     }
 
     const reference = values.reference.trim()
-    if (reference.length < 6 || reference.length > 60)
-      found.reference =
-        'Enter the UTR or reference from your UPI app, 6 to 60 characters.'
+    const skipped = referenceOptional && reference === ''
+    if (!skipped && (reference.length < 6 || reference.length > 60))
+      found.reference = referenceOptional
+        ? 'A UTR must be 6 to 60 characters — or leave it empty.'
+        : 'Enter the UTR or reference from your UPI app, 6 to 60 characters.'
 
     setLocal(found)
     if (Object.keys(found).length > 0) {
@@ -163,7 +171,10 @@ export function UpiPaymentForm({
         </div>
 
         <div className="field">
-          <label htmlFor={id('reference')}>UTR / reference</label>
+          <label htmlFor={id('reference')}>
+            UTR / reference{' '}
+            {referenceOptional && <span className="optional">optional</span>}
+          </label>
           <input
             id={id('reference')}
             value={values.reference}

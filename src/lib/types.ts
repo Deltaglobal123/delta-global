@@ -108,7 +108,8 @@ export type WithdrawalChargePayment = {
   status_label: string
   amount_paise: number
   amount: string
-  reference: string
+  /** Null when the customer left the UTR out, which a charge allows. */
+  reference: string | null
   created_at: string
 }
 

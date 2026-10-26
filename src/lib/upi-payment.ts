@@ -23,10 +23,10 @@ export type UpiPaymentErrors = Partial<Record<keyof UpiPaymentValues, string>>
 export function toPaymentBody(
   values: UpiPaymentValues,
 ): FormData | Record<string, string> {
-  const fields: Record<string, string> = {
-    amount: values.amount,
-    reference: values.reference,
-  }
+  const fields: Record<string, string> = { amount: values.amount }
+  // Left out when empty — allowed on a withdrawal charge; the deposit form
+  // never gets this far without one.
+  if (values.reference) fields.reference = values.reference
   if (values.payer_name) fields.payer_name = values.payer_name
   if (values.payer_upi_id) fields.payer_upi_id = values.payer_upi_id
   if (values.paid_at) fields.paid_at = values.paid_at

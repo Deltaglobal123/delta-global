@@ -23,11 +23,14 @@ export type QuizQuestion = {
 
 /** One row of `GET /popup-questions`. */
 type PopupQuestion = {
-  id: number
+  /** Null on the fixed last question, so it is never used as a key. */
+  id: number | null
   question: string
   answers: string[]
   correct_answer: string
-  sort_order: number
+  sort_order: number | null
+  /** True only for "Are you ready for AI trading?", always sent last. */
+  is_fixed?: boolean
 }
 
 const YES_NO = ['Yes', 'No']
@@ -64,24 +67,31 @@ export const READY_QUESTION: QuizQuestion = {
   required: true,
 }
 
-function toQuizQuestion(row: PopupQuestion): QuizQuestion {
+function toQuizQuestion(row: PopupQuestion, index: number): QuizQuestion {
   const options = (row.answers ?? []).filter((label) => label?.trim())
   // The API promises ["Yes", "No"]; an empty list would leave no way forward.
   const usable = options.length > 0 ? options : YES_NO
+  // Compared exactly, as the API asks. One that matches no button cannot be
+  // picked, so the question is treated as having no right answer instead.
+  const answer = usable.includes(row.correct_answer) ? row.correct_answer : null
+
   return {
-    id: `popup-${row.id}`,
+    // From the list position: `id` is null on the fixed question.
+    id: `popup-${index}`,
     question: row.question,
     options: usable,
-    // Compared exactly, as the API asks. One that matches no button cannot be
-    // picked, so the question is treated as having no right answer instead.
-    answer: usable.includes(row.correct_answer) ? row.correct_answer : null,
+    answer,
+    // The fixed readiness question is the gate — but only if it really has a
+    // right answer to gate on, or it would trap the customer.
+    required: Boolean(row.is_fixed) && answer !== null,
   }
 }
 
 /**
- * The full set for one run: the admin's questions (or the fallback), then the
- * readiness check. Never rejects — a failed request falls back instead, unless
- * the caller aborted it.
+ * The full set for one run, ending on the readiness check. The backend sends
+ * that check as its fixed last question; it is added here only when it is
+ * missing (an older backend) or the request failed. Never rejects — a failed
+ * request falls back instead, unless the caller aborted it.
  */
 export async function loadQuiz(signal?: AbortSignal): Promise<QuizQuestion[]> {
   let questions = FALLBACK_QUIZ
@@ -97,5 +107,6 @@ export async function loadQuiz(signal?: AbortSignal): Promise<QuizQuestion[]> {
     if (signal?.aborted) throw error
   }
 
-  return [...questions, READY_QUESTION]
+  const last = questions[questions.length - 1]
+  return last?.required ? questions : [...questions, READY_QUESTION]
 }
