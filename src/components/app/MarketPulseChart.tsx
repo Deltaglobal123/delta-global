@@ -10,8 +10,18 @@ const PERIOD = 1400
 const STEP = 90
 const PAD_TOP = 18
 const PAD_BOTTOM = 14
-/** Room on the right for the live candle and its price line to breathe. */
-const PAD_RIGHT = 34
+/** Room on the right for the live candle and the price tag beside it. */
+const PAD_RIGHT = 96
+/** Where the price opens, and the level it keeps wandering back towards. */
+const ANCHOR = 66051
+/** Size of one random-walk step, in rupees. */
+const TICK = 38
+
+const money = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+})
 
 function cssVar(name: string, fallback: string) {
   const value = getComputedStyle(document.documentElement)
@@ -20,15 +30,19 @@ function cssVar(name: string, fallback: string) {
   return value || fallback
 }
 
-/** A gentle random walk with a slow drift, so it reads like a market. */
+/**
+ * A gentle random walk with a slow drift, so it reads like a market. A faint
+ * pull towards the anchor lets it rise and fall without wandering off.
+ */
 function nextPrice(price: number, drift: number) {
-  const shock = (Math.random() - 0.5) * 1.6
-  return Math.max(20, price + shock + drift)
+  const shock = (Math.random() - 0.5) * 1.6 * TICK
+  const pull = (ANCHOR - price) * 0.002
+  return price + shock + drift * TICK + pull
 }
 
 function seed(count: number): Candle[] {
   const candles: Candle[] = []
-  let price = 100
+  let price = ANCHOR
   for (let i = 0; i < count; i++) {
     const o = price
     let h = o
@@ -43,8 +57,16 @@ function seed(count: number): Candle[] {
     candles.push({ o, h, l, c })
     price = c
   }
+  // Shift the history so the live price opens exactly on the anchor.
+  const shift = ANCHOR - price
+  for (const candle of candles) {
+    candle.o += shift
+    candle.h += shift
+    candle.l += shift
+    candle.c += shift
+  }
   // The open candle, which grows live from here.
-  candles.push({ o: price, h: price, l: price, c: price })
+  candles.push({ o: ANCHOR, h: ANCHOR, l: ANCHOR, c: ANCHOR })
   return candles
 }
 
@@ -55,11 +77,13 @@ function seed(count: number): Candle[] {
  */
 export function MarketPulseChart() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const tagRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
-    if (!canvas || !ctx) return
+    const tag = tagRef.current
+    if (!canvas || !ctx || !tag) return
 
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -77,6 +101,7 @@ export function MarketPulseChart() {
     let lo = 0
     let hi = 0
     let frame = 0
+    let shownPrice = ''
 
     function resize() {
       const rect = canvas!.getBoundingClientRect()
@@ -196,6 +221,15 @@ export function MarketPulseChart() {
       ctx!.beginPath()
       ctx!.arc(liveX, ly, 3.5, 0, Math.PI * 2)
       ctx!.fill()
+
+      // The price tag is DOM, not canvas, so the edge fade doesn't dim it.
+      const price = money.format(live.c)
+      if (price !== shownPrice) {
+        shownPrice = price
+        tag!.textContent = price
+      }
+      tag!.style.background = colour
+      tag!.style.transform = `translateY(${canvas!.offsetTop + ly}px) translateY(-50%)`
     }
 
     function loop(now: number) {
@@ -237,6 +271,9 @@ export function MarketPulseChart() {
   return (
     <figure className="market-pulse">
       <canvas ref={canvasRef} className="market-pulse-canvas" aria-hidden="true" />
+      <span ref={tagRef} className="market-pulse-price" aria-hidden="true">
+        {money.format(ANCHOR)}
+      </span>
       <figcaption className="market-pulse-caption">
         <span className="market-pulse-dot" aria-hidden="true" />
         Market activity · illustrative
