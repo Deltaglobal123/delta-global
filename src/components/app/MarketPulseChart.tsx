@@ -13,13 +13,13 @@ const PAD_BOTTOM = 14
 /** Room on the right for the live candle and the price tag beside it. */
 const PAD_RIGHT = 96
 /** Where the price opens. */
-const START = 52000
+const START = 10000
 /** The ceiling: the price climbs to it over CLIMB and never passes it. */
 const CEILING = 66051
 /** How long the climb from START to CEILING takes, in ms. */
 const CLIMB = 3 * 60 * 1000
 /** Size of one random-walk step, in rupees. */
-const TICK = 60
+const TICK = 220
 
 const money = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -46,13 +46,13 @@ function target(elapsed: number) {
 
 /**
  * A random walk with a slow drift, so it reads like a market, pulled along
- * the climb so it rises with dips on the way. It is clamped at the ceiling,
- * so it tops out at exactly that and never passes it.
+ * the climb so it rises with dips on the way. It is clamped between the start
+ * and the ceiling, so it tops out at exactly that and never passes it.
  */
 function nextPrice(price: number, drift: number, goal: number) {
   const shock = (Math.random() - 0.5) * 1.6 * TICK
   const pull = (goal - price) * 0.05
-  return Math.min(CEILING, price + shock + drift * TICK + pull)
+  return Math.min(CEILING, Math.max(START, price + shock + drift * TICK + pull))
 }
 
 /** Sideways history around the start, so the climb begins from a range. */
@@ -73,16 +73,8 @@ function seed(count: number): Candle[] {
     candles.push({ o, h, l, c })
     price = c
   }
-  // Shift the history so the live price opens exactly on the start.
-  const shift = START - price
-  for (const candle of candles) {
-    candle.o += shift
-    candle.h += shift
-    candle.l += shift
-    candle.c += shift
-  }
   // The open candle, which grows live from here.
-  candles.push({ o: START, h: START, l: START, c: START })
+  candles.push({ o: price, h: price, l: price, c: price })
   return candles
 }
 
