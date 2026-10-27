@@ -1,27 +1,49 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-type Candle = { o: number; h: number; l: number; c: number }
+type Candle = { t: number; o: number; h: number; l: number; c: number }
+type Feed = 'connecting' | 'live' | 'reconnecting' | 'sim'
 
 /** Width of one candle slot, body plus gap, in CSS pixels. */
 const SLOT = 14
 /** How long one candle stays open before the next one starts, in ms. */
-const PERIOD = 1400
-/** How often the open candle's price moves, in ms. */
+const PERIOD = 1000
+/** How often the simulated open candle's price moves, in ms. */
 const STEP = 90
 const PAD_TOP = 18
 const PAD_BOTTOM = 14
 /** Room on the right for the live candle and the price tag beside it. */
-const PAD_RIGHT = 96
-/** Where the price opens, and the level it keeps wandering back towards. */
-const ANCHOR = 66051
-/** Size of one random-walk step, in rupees. */
-const TICK = 38
+const PAD_RIGHT = 112
 
-const money = new Intl.NumberFormat('en-IN', {
+/** The real market shown — Binance's public spot feed, no key needed. */
+const PAIR = 'BTC/USDT'
+const SYMBOL = 'BTCUSDT'
+const HISTORY_URL = `https://api.binance.com/api/v3/klines?symbol=${SYMBOL}&interval=1s&limit=240`
+const STREAM_URL = `wss://stream.binance.com:9443/ws/${SYMBOL.toLowerCase()}@kline_1s`
+/** Give up on the live feed and simulate if history hasn't landed by then. */
+const CONNECT_TIMEOUT = 6000
+const RECONNECT_DELAY = 3000
+
+/** Where the simulated fallback opens, and the level it wanders around. */
+const ANCHOR = 66051
+
+const usdt = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+const inr = new Intl.NumberFormat('en-IN', {
   style: 'currency',
   currency: 'INR',
   maximumFractionDigits: 0,
 })
+
+const CAPTIONS: Record<Feed, string> = {
+  connecting: `Connecting to ${PAIR}…`,
+  live: `${PAIR} · live market`,
+  reconnecting: `${PAIR} · reconnecting…`,
+  sim: 'Market activity · illustrative',
+}
 
 function cssVar(name: string, fallback: string) {
   const value = getComputedStyle(document.documentElement)
@@ -35,9 +57,10 @@ function cssVar(name: string, fallback: string) {
  * pull towards the anchor lets it rise and fall without wandering off.
  */
 function nextPrice(price: number, drift: number) {
-  const shock = (Math.random() - 0.5) * 1.6 * TICK
+  const tick = ANCHOR * 0.00058
+  const shock = (Math.random() - 0.5) * 1.6 * tick
   const pull = (ANCHOR - price) * 0.002
-  return price + shock + drift * TICK + pull
+  return price + shock + drift * tick + pull
 }
 
 function seed(count: number): Candle[] {
@@ -54,7 +77,7 @@ function seed(count: number): Candle[] {
       h = Math.max(h, c)
       l = Math.min(l, c)
     }
-    candles.push({ o, h, l, c })
+    candles.push({ t: i, o, h, l, c })
     price = c
   }
   // Shift the history so the live price opens exactly on the anchor.
@@ -66,18 +89,21 @@ function seed(count: number): Candle[] {
     candle.c += shift
   }
   // The open candle, which grows live from here.
-  candles.push({ o: ANCHOR, h: ANCHOR, l: ANCHOR, c: ANCHOR })
+  candles.push({ t: count, o: ANCHOR, h: ANCHOR, l: ANCHOR, c: ANCHOR })
   return candles
 }
 
 /**
- * A decorative candlestick chart that keeps flowing while a run is open. The
- * prices are generated here, not fetched — it shows that the desk is at work,
- * not what the customer's run is doing — and the caption says so.
+ * A candlestick chart that keeps flowing while a run is open. It streams the
+ * real BTC/USDT market, one-second candles, from Binance's public feed. That
+ * is the market, not the customer's run, and the caption names the pair so it
+ * never reads as their position. If the feed can't be reached it falls back
+ * to a simulated walk and the caption says it is illustrative.
  */
 export function MarketPulseChart() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const tagRef = useRef<HTMLSpanElement>(null)
+  const [feed, setFeed] = useState<Feed>('connecting')
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -93,7 +119,10 @@ export function MarketPulseChart() {
 
     let width = 0
     let height = 0
-    const candles = seed(80)
+    let mode: Feed = 'connecting'
+    let candles: Candle[] = []
+    // When the open candle appeared here, so it slides by local time and a
+    // skewed device clock can't freeze or rush the chart.
     let periodStart = performance.now()
     let lastStep = periodStart
     let drift = 0
@@ -102,6 +131,14 @@ export function MarketPulseChart() {
     let hi = 0
     let frame = 0
     let shownPrice = ''
+    let disposed = false
+    let socket: WebSocket | null = null
+    let retry = 0
+
+    function setMode(next: Feed) {
+      mode = next
+      setFeed(next)
+    }
 
     function resize() {
       const rect = canvas!.getBoundingClientRect()
@@ -114,6 +151,7 @@ export function MarketPulseChart() {
     }
 
     function advance(now: number) {
+      if (mode !== 'sim') return
       const live = candles[candles.length - 1]
 
       while (now - lastStep >= STEP) {
@@ -127,12 +165,15 @@ export function MarketPulseChart() {
         periodStart += PERIOD
         // Trends come and go, so the chart has swings rather than noise.
         if (Math.random() < 0.18) drift = (Math.random() - 0.5) * 0.5
-        candles.push({ o: live.c, h: live.c, l: live.c, c: live.c })
-        if (candles.length > 200) candles.shift()
+        candles.push({ t: live.t + 1, o: live.c, h: live.c, l: live.c, c: live.c })
+        if (candles.length > 300) candles.shift()
       }
     }
 
     function draw(now: number) {
+      ctx!.clearRect(0, 0, width, height)
+      if (candles.length === 0) return
+
       // Slides every candle left as the open one ages, so the chart flows
       // rather than stepping a slot at a time.
       const phase = still ? 0 : Math.min(1, (now - periodStart) / PERIOD)
@@ -156,8 +197,6 @@ export function MarketPulseChart() {
 
       const plot = height - PAD_TOP - PAD_BOTTOM
       const y = (price: number) => PAD_TOP + ((hi - price) / (hi - lo)) * plot
-
-      ctx!.clearRect(0, 0, width, height)
 
       ctx!.strokeStyle = grid
       ctx!.lineWidth = 1
@@ -223,11 +262,12 @@ export function MarketPulseChart() {
       ctx!.fill()
 
       // The price tag is DOM, not canvas, so the edge fade doesn't dim it.
-      const price = money.format(live.c)
+      const price = (mode === 'sim' ? inr : usdt).format(live.c)
       if (price !== shownPrice) {
         shownPrice = price
         tag!.textContent = price
       }
+      tag!.style.visibility = 'visible'
       tag!.style.background = colour
       tag!.style.transform = `translateY(${canvas!.offsetTop + ly}px) translateY(-50%)`
     }
@@ -238,6 +278,66 @@ export function MarketPulseChart() {
       frame = requestAnimationFrame(loop)
     }
 
+    function simulate() {
+      if (disposed || mode !== 'connecting') return
+      candles = seed(80)
+      periodStart = performance.now()
+      lastStep = periodStart
+      setMode('sim')
+      if (still) draw(performance.now())
+    }
+
+    function onKline(event: MessageEvent) {
+      const k = JSON.parse(event.data).k
+      if (!k) return
+      const candle: Candle = { t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c }
+      const last = candles[candles.length - 1]
+      if (last && last.t === candle.t) {
+        Object.assign(last, candle)
+      } else if (!last || candle.t > last.t) {
+        candles.push(candle)
+        periodStart = performance.now()
+        if (candles.length > 300) candles.shift()
+      }
+      if (still) draw(performance.now())
+    }
+
+    function connect() {
+      if (disposed) return
+      socket = new WebSocket(STREAM_URL)
+      socket.onmessage = onKline
+      socket.onopen = () => setMode('live')
+      socket.onclose = () => {
+        if (disposed) return
+        setMode('reconnecting')
+        retry = window.setTimeout(connect, RECONNECT_DELAY)
+      }
+    }
+
+    // History first, so the chart opens full; then the stream keeps it moving.
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => {
+      controller.abort()
+      simulate()
+    }, CONNECT_TIMEOUT)
+    fetch(HISTORY_URL, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        return response.json() as Promise<[number, string, string, string, string][]>
+      })
+      .then((rows) => {
+        window.clearTimeout(timeout)
+        if (disposed || mode !== 'connecting') return
+        candles = rows.map(([t, o, h, l, c]) => ({ t, o: +o, h: +h, l: +l, c: +c }))
+        periodStart = performance.now()
+        if (still) draw(performance.now())
+        connect()
+      })
+      .catch(() => {
+        window.clearTimeout(timeout)
+        simulate()
+      })
+
     resize()
     const observer = new ResizeObserver(() => {
       resize()
@@ -245,11 +345,7 @@ export function MarketPulseChart() {
     })
     observer.observe(canvas)
 
-    if (still) {
-      draw(performance.now())
-    } else {
-      frame = requestAnimationFrame(loop)
-    }
+    if (!still) frame = requestAnimationFrame(loop)
 
     // A tab in the background pauses rAF; jump the clocks so it doesn't
     // replay every missed candle in one frame when it comes back.
@@ -262,6 +358,11 @@ export function MarketPulseChart() {
     document.addEventListener('visibilitychange', onVisible)
 
     return () => {
+      disposed = true
+      controller.abort()
+      window.clearTimeout(timeout)
+      window.clearTimeout(retry)
+      socket?.close()
       cancelAnimationFrame(frame)
       observer.disconnect()
       document.removeEventListener('visibilitychange', onVisible)
@@ -271,12 +372,15 @@ export function MarketPulseChart() {
   return (
     <figure className="market-pulse">
       <canvas ref={canvasRef} className="market-pulse-canvas" aria-hidden="true" />
-      <span ref={tagRef} className="market-pulse-price" aria-hidden="true">
-        {money.format(ANCHOR)}
-      </span>
+      <span
+        ref={tagRef}
+        className="market-pulse-price"
+        style={{ visibility: 'hidden' }}
+        aria-hidden="true"
+      />
       <figcaption className="market-pulse-caption">
         <span className="market-pulse-dot" aria-hidden="true" />
-        Market activity · illustrative
+        {CAPTIONS[feed]}
       </figcaption>
     </figure>
   )
