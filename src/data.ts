@@ -704,6 +704,7 @@ export const COPYRIGHT = '© 2026 Delta Global. All rights reserved.'
  */
 export const FOOTER = {
   blurb: 'AI-powered tools for a more structured trading experience.',
+  address: 'North Wing, NESCO IT Park, Western Express Hwy, NESCO, Goregaon East, Mumbai, Maharashtra 400063, India',
   columns: [
     {
       title: 'Platform',

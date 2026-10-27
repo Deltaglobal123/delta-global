@@ -18,6 +18,22 @@ export function Footer() {
               </span>
             </Link>
             <p className="footer-blurb">{FOOTER.blurb}</p>
+            <address className="footer-address">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                width="14"
+                height="14"
+                aria-hidden="true"
+                className="footer-pin"
+              >
+                <path d="M12 21s-7-6.686-7-11.5a7 7 0 1 1 14 0C19 14.314 12 21 12 21z" />
+                <circle cx="12" cy="9.5" r="2.5" />
+              </svg>
+              {FOOTER.address}
+            </address>
           </div>
 
           {FOOTER.columns.map((column) => (
