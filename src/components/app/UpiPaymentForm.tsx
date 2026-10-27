@@ -129,6 +129,10 @@ export function UpiPaymentForm({
         ? 'A UTR must be 6 to 60 characters — or leave it empty.'
         : 'Enter the UTR or reference from your UPI app, 6 to 60 characters.'
 
+    // Proof is required on every claim, deposit or charge alike.
+    if (!values.screenshot)
+      found.screenshot = local.screenshot ?? 'Attach a screenshot of the payment.'
+
     setLocal(found)
     if (Object.keys(found).length > 0) {
       document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
@@ -239,12 +243,13 @@ export function UpiPaymentForm({
 
         <div className="field">
           <label htmlFor={id('screenshot')}>
-            Payment screenshot <span className="optional">optional</span>
+            Payment screenshot
           </label>
           <input
             id={id('screenshot')}
             type="file"
             accept="image/png,image/jpeg,image/webp"
+            required
             aria-invalid={Boolean(error('screenshot'))}
             onChange={(event) => onFile(event.target.files?.[0] ?? null)}
           />

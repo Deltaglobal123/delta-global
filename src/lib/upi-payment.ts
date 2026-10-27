@@ -1,6 +1,6 @@
 /**
  * One UPI payment claim — a deposit or a withdrawal charge. Both are the same
- * thing to the API: an amount, the UTR the bank gave it, and optional proof.
+ * thing to the API: an amount, the UTR the bank gave it, and a screenshot.
  */
 
 export const MAX_SCREENSHOT = 4 * 1024 * 1024
