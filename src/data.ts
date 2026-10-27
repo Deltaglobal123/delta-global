@@ -490,12 +490,85 @@ export const AWARDS: Award[] = [
 
 export const ABOUT = {
   eyebrow: 'About us',
-  heading: 'A team dedicated to your career growth',
-  lead: 'We are a group of career strategists, coaches, and industry professionals united by one goal: helping ambitious people turn uncertainty into opportunity',
+  heading: 'Delta Operations — Global AI Innovation, Trading Models & Enterprise Solutions',
+  lead: 'Delta Operations is a next-generation, large-scale enterprise driving innovation at the intersection of Artificial Intelligence, automated trading systems, and global digital outsourcing.',
   philosophyTitle: 'Our philosophy',
   philosophy:
     'Our mission is to empower organizations by providing seamless, secure, and efficient operational frameworks. We believe that work from home and Investment should be the invisible backbone of a successful people, allowing our clients to focus on growth while we handle the risks.',
   differenceTitle: "The difference you'll experience",
+}
+
+export const DELTA_OPS_CONTENT = {
+  intro:
+    'By integrating advanced AI technologies with elite remote workforces, we deliver high-impact solutions to the world's leading technology and e-commerce giants, including Amazon, Google, and Microsoft.',
+  divisions: [
+    {
+      number: '01',
+      title: 'AI-Driven Trading Models & Advanced Technology',
+      icon: 'trading',
+      points: [
+        {
+          label: 'Algorithmic Trading Systems',
+          detail:
+            'We are actively developing and deploying sophisticated AI-powered trading models designed for precision, automated risk management, and market intelligence.',
+        },
+        {
+          label: 'Smart AI Integration',
+          detail:
+            'Leveraging machine learning algorithms to automate complex workflows, optimize data handling, and power future-ready financial and operational models.',
+        },
+      ],
+    },
+    {
+      number: '02',
+      title: 'Digital Outsourcing & Specialized Typing Projects',
+      icon: 'outsourcing',
+      points: [
+        {
+          label: 'Scalable Workforce Execution',
+          detail:
+            'We manage and deploy skilled remote teams to execute high-volume data processing, content management, and specialized typing projects with utmost accuracy.',
+        },
+        {
+          label: 'Remote Excellence',
+          detail:
+            'Providing structured, secure, and rewarding digital work opportunities that bridge talent with global enterprise demands.',
+        },
+      ],
+    },
+    {
+      number: '03',
+      title: 'Global MNC Consultancy & Strategic Partnerships',
+      icon: 'consultancy',
+      points: [
+        {
+          label: 'Collaborating with Industry Giants',
+          detail:
+            'We serve as trusted partners and consultancy providers for top-tier global corporations like Amazon, Google, and Microsoft.',
+        },
+        {
+          label: 'Enterprise-Grade Execution',
+          detail:
+            'Delivering scalable customer experience solutions, technical support, and strategic operational execution that meet rigorous international corporate standards.',
+        },
+      ],
+    },
+  ],
+  whyTitle: 'Why Delta Operations?',
+  whyPoints: [
+    {
+      label: 'Pioneering Innovation',
+      detail: 'Blending cutting-edge AI technology with proprietary trading systems.',
+    },
+    {
+      label: 'Global Trust',
+      detail: 'Trusted collaboration networks spanning premier multinational enterprises.',
+    },
+    {
+      label: 'Empowered Ecosystem',
+      detail: 'Driving efficiency, accuracy, and high-performance execution across all operational touchpoints.',
+    },
+  ],
 }
 
 export const FOUNDER = {
@@ -507,6 +580,67 @@ export const FOUNDER = {
   stats: [
     { value: '$2.6B', label: 'Net worth, per Forbes' },
     { value: '38', label: 'Age' },
+  ],
+}
+
+export const COMPANY_DETAILS = {
+  sectionLabel: 'Key Company Details',
+  founded: '2018',
+  headquarters: 'Singapore',
+  foundingTeam: [
+    {
+      name: 'Pankaj Balani',
+      role: 'CEO',
+      initials: 'PB',
+      background: 'Former UBS · IIT Delhi / ISB MBA',
+    },
+    {
+      name: 'Jitender Tokas',
+      role: 'CBO',
+      initials: 'JT',
+      background: 'Former Citigroup / GIC · IIT Kharagpur / ISB MBA',
+    },
+    {
+      name: 'Saurabh Goyal',
+      role: 'CTO',
+      initials: 'SG',
+      background: 'Co-founder Housing.com / TinyOwl · ex-Hotstar · IIT Bombay',
+    },
+  ],
+  investors: ['Aave', 'QCP', 'CoinFund', 'Kyber Network', 'LuneX Ventures'],
+  products: [
+    'Futures & Perpetuals',
+    'Options',
+    'Interest Rate Swaps',
+    'Calendar Spreads',
+    'Turbo Options',
+    'Up to 100× leverage on global platforms',
+  ],
+  indiaLabel: 'Delta Exchange India',
+  indiaDescription:
+    'Registered with India\'s Financial Intelligence Unit (FIU), offering crypto futures, options, and tokenized real-world assets (gold & silver tokens) with INR settlement and support.',
+  tradingFeatures: [
+    'Smart margining',
+    'TradingView integration',
+    'Free APIs',
+    'Robo-trading strategies',
+    'Demo / testnet mode',
+  ],
+}
+
+export const OPERATING_ENTITY = {
+  sectionLabel: 'Operating Entity',
+  name: 'Excelium Technologies Private Limited',
+  cin: 'U72900MH2023PTC396686',
+  address:
+    '10-106, WeWork, Nesco Building 4, North Wing, NESCO IT Park, Western Express Hwy, NESCO, Goregaon East, Mumbai, Maharashtra 400063, India',
+  regulatoryLabel: 'Regulatory Registration',
+  regulatoryBody: 'Financial Intelligence Unit – India (FIU-IND)',
+  registrationNumber: 'VA00041101',
+  leadership: [
+    { name: 'Pankaj Balani', role: 'CEO', initials: 'PB' },
+    { name: 'Jitender Tokas', role: 'CBO', initials: 'JT' },
+    { name: 'Saurabh Goyal', role: 'CTO', initials: 'SG' },
   ],
 }
 
