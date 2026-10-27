@@ -169,7 +169,6 @@ export function ChargePopup({
               fixedAmount={withdrawalAmount}
               fixedAmountLabel={step.amount}
               amountLabel="Amount to pay"
-              referenceOptional
               serverErrors={fieldErrors}
               busy={busy || cooling}
               submitLabel={isLast ? 'Paid → Submit' : 'Paid → Continue'}

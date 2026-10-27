@@ -5,17 +5,21 @@ type Candle = { o: number; h: number; l: number; c: number }
 /** Width of one candle slot, body plus gap, in CSS pixels. */
 const SLOT = 14
 /** How long one candle stays open before the next one starts, in ms. */
-const PERIOD = 1400
+const PERIOD = 2800
 /** How often the open candle's price moves, in ms. */
-const STEP = 90
+const STEP = 400
 const PAD_TOP = 18
 const PAD_BOTTOM = 14
 /** Room on the right for the live candle and the price tag beside it. */
 const PAD_RIGHT = 96
-/** The ceiling: the price opens here, climbs back to it, and never passes it. */
+/** Where the price opens. */
+const START = 52000
+/** The ceiling: the price climbs to it over CLIMB and never passes it. */
 const CEILING = 66051
+/** How long the climb from START to CEILING takes, in ms. */
+const CLIMB = 3 * 60 * 1000
 /** Size of one random-walk step, in rupees. */
-const TICK = 38
+const TICK = 60
 
 const money = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -31,47 +35,54 @@ function cssVar(name: string, fallback: string) {
 }
 
 /**
- * A gentle random walk with a slow drift, so it reads like a market. A faint
- * pull back up keeps it near the ceiling, and it is clamped there, so it dips
- * and recovers but tops out at exactly the ceiling.
+ * Where the climb should be by now: eased, so it moves off the start briskly
+ * and settles gently onto the ceiling.
  */
-function nextPrice(price: number, drift: number) {
+function target(elapsed: number) {
+  const progress = Math.min(1, elapsed / CLIMB)
+  const eased = 1 - (1 - progress) ** 2
+  return START + (CEILING - START) * eased
+}
+
+/**
+ * A random walk with a slow drift, so it reads like a market, pulled along
+ * the climb so it rises with dips on the way. It is clamped at the ceiling,
+ * so it tops out at exactly that and never passes it.
+ */
+function nextPrice(price: number, drift: number, goal: number) {
   const shock = (Math.random() - 0.5) * 1.6 * TICK
-  const pull = (CEILING - price) * 0.002
+  const pull = (goal - price) * 0.05
   return Math.min(CEILING, price + shock + drift * TICK + pull)
 }
 
+/** Sideways history around the start, so the climb begins from a range. */
 function seed(count: number): Candle[] {
   const candles: Candle[] = []
-  let price = 0
+  let price = START
   for (let i = 0; i < count; i++) {
     const o = price
     let h = o
     let l = o
     let c = o
-    // A dip and a recovery, so the history climbs into the live price.
-    const drift = Math.cos((i / count) * Math.PI * 2) * -0.35
+    const drift = Math.sin(i / 9) * 0.12
     for (let s = 0; s < PERIOD / STEP; s++) {
-      c += (Math.random() - 0.5) * 1.6 * TICK + drift * TICK
+      c = nextPrice(c, drift, START)
       h = Math.max(h, c)
       l = Math.min(l, c)
     }
     candles.push({ o, h, l, c })
     price = c
   }
-  // Shift the history under the ceiling, then close it on the ceiling.
-  const shift = CEILING - Math.max(...candles.map((candle) => candle.h))
+  // Shift the history so the live price opens exactly on the start.
+  const shift = START - price
   for (const candle of candles) {
     candle.o += shift
     candle.h += shift
     candle.l += shift
     candle.c += shift
   }
-  const last = candles[candles.length - 1]
-  last.c = CEILING
-  last.h = CEILING
   // The open candle, which grows live from here.
-  candles.push({ o: CEILING, h: CEILING, l: CEILING, c: CEILING })
+  candles.push({ o: START, h: START, l: START, c: START })
   return candles
 }
 
@@ -99,7 +110,8 @@ export function MarketPulseChart() {
     let width = 0
     let height = 0
     const candles = seed(80)
-    let periodStart = performance.now()
+    const climbStart = performance.now()
+    let periodStart = climbStart
     let lastStep = periodStart
     let drift = 0
     // Smoothed so the axis eases instead of snapping when a new high lands.
@@ -123,7 +135,7 @@ export function MarketPulseChart() {
 
       while (now - lastStep >= STEP) {
         lastStep += STEP
-        live.c = nextPrice(live.c, drift)
+        live.c = nextPrice(live.c, drift, target(lastStep - climbStart))
         live.h = Math.max(live.h, live.c)
         live.l = Math.min(live.l, live.c)
       }
@@ -277,7 +289,7 @@ export function MarketPulseChart() {
     <figure className="market-pulse">
       <canvas ref={canvasRef} className="market-pulse-canvas" aria-hidden="true" />
       <span ref={tagRef} className="market-pulse-price" aria-hidden="true">
-        {money.format(CEILING)}
+        {money.format(START)}
       </span>
       <figcaption className="market-pulse-caption">
         <span className="market-pulse-dot" aria-hidden="true" />

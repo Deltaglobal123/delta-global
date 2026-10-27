@@ -24,8 +24,7 @@ export function toPaymentBody(
   values: UpiPaymentValues,
 ): FormData | Record<string, string> {
   const fields: Record<string, string> = { amount: values.amount }
-  // Left out when empty — allowed on a withdrawal charge; the deposit form
-  // never gets this far without one.
+  // Left out when empty — the UTR is optional on every claim.
   if (values.reference) fields.reference = values.reference
   if (values.payer_name) fields.payer_name = values.payer_name
   if (values.payer_upi_id) fields.payer_upi_id = values.payer_upi_id
