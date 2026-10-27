@@ -3,6 +3,7 @@ import { PRICING_INTRO } from '../data'
 import { ArrowIcon } from '../icons'
 import { SectionHead } from '../components/SectionHead'
 import { Hero, HeroStart } from '../sections/Hero'
+import { DeltaOps } from '../sections/DeltaOps'
 import { Intro } from '../sections/Intro'
 import { Steps } from '../sections/Steps'
 import { AiTrading } from '../sections/AiTrading'
@@ -65,6 +66,7 @@ export function Home() {
           visitor meets, and they work hardest before the feature tour, not
           after it. */}
       <Proof />
+      <DeltaOps />
       <Intro />
       <Steps />
       <AiTrading />
