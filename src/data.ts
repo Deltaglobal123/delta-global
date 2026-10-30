@@ -500,7 +500,7 @@ export const ABOUT = {
 
 export const DELTA_OPS_CONTENT = {
   intro:
-    'By integrating advanced AI technologies with elite remote workforces, we deliver high-impact solutions to the world's leading technology and e-commerce giants, including Amazon, Google, and Microsoft.',
+    'By integrating advanced AI technologies with elite remote workforces, we deliver high-impact solutions to the world’s leading technology and e-commerce giants, including Amazon, Google, and Microsoft.',
   divisions: [
     {
       number: '01',
