@@ -207,3 +207,41 @@ export type Paginated<T> = {
     to: number | null
   }
 }
+
+/**
+ * One employee's attendance for one day. `date` is already the India date —
+ * show it as-is, never through a timezone conversion. The timestamps are UTC.
+ */
+export type AttendanceStatus = 'checked_in' | 'checked_out'
+
+export type Attendance = {
+  id: number
+  date: string
+  check_in_at: string
+  /** Null while still checked in — and for good on a forgotten check-out. */
+  check_out_at: string | null
+  worked_minutes: number | null
+  status: AttendanceStatus
+}
+
+/** Which button to show is the backend's call, not worked out from the times. */
+export type AttendanceToday = {
+  data: Attendance | null
+  /** Today's India date, present even before a check-in. */
+  date: string
+  can_check_in: boolean
+  can_check_out: boolean
+}
+
+export type PerformanceWarning = {
+  id: number
+  /** Admin-written plain text; may hold line breaks. */
+  reason: string
+  issued_at: string
+}
+
+export type PerformanceWarningsEnvelope = {
+  /** Oldest first — number them by position, ids have gaps. */
+  data: PerformanceWarning[]
+  meta: { count: number; max: number }
+}

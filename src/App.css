@@ -2662,30 +2662,84 @@
 
 /* ============================== employee screen ============================ */
 
-.employee-shell {
-  position: relative;
+.employee-page {
+  min-height: 100svh;
+}
+
+.employee-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px clamp(16px, 3.5vw, 44px);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-soft);
+}
+
+.employee-bar-end {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.employee-main {
+  margin-inline: auto;
+}
+
+.employee-grid {
   display: grid;
-  gap: 28px;
-  justify-items: center;
-  width: 100%;
-  max-width: 520px;
-  padding-inline: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  align-items: start;
 }
 
-.employee-shell .auth-card {
-  width: 100%;
+.attendance-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  font-size: 15px;
 }
 
-.employee-user {
-  margin-top: 6px;
-  padding: 14px;
-  border-radius: 14px;
+.warning-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.warning-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--surface);
 }
 
-.employee-shell .app-signout {
-  align-self: flex-start;
+.warning-item h3 {
+  font-size: 15px;
+}
+
+.warning-reason {
+  font-size: 14px;
+  white-space: pre-line;
+}
+
+@media (max-width: 760px) {
+  .employee-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .employee-bar-end {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 .app-shell {
