@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { api, getToken, onSessionExpired, setToken } from './api'
-import { AuthContext, isStaff, type AuthValue, type SignInResult } from './auth-context'
+import { api, getToken, onSessionExpired, onUserRefreshed, setToken } from './api'
+import { AuthContext, isEmployee, isStaff, type AuthValue, type SignInResult } from './auth-context'
 import type { AuthEnvelope, User } from './types'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -36,7 +36,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // A token that could not be refreshed drops the session wherever we are.
   useEffect(() => onSessionExpired(() => setUser(null)), [])
 
+  // A refresh or a 403 re-check brought back fresh roles — route from those.
+  useEffect(() => onUserRefreshed(setUser), [])
+
   const adopt = useCallback((envelope: AuthEnvelope): SignInResult => {
+    // Checked before staff: the admin panel refuses employees, so bouncing one
+    // there would strand them.
+    if (isEmployee(envelope.data)) {
+      setToken(envelope.token)
+      setUser(envelope.data)
+      return { kind: 'employee', user: envelope.data }
+    }
+
     if (isStaff(envelope.data)) {
       // Never hold a staff session in the customer app — hand it straight back
       // so the caller can bounce them to the panel.

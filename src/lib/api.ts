@@ -1,4 +1,4 @@
-import type { AuthEnvelope } from './types'
+import type { AuthEnvelope, User } from './types'
 
 const BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost/api').replace(
   /\/+$/,
@@ -71,6 +71,27 @@ export function onSessionExpired(fn: Listener) {
 function announceExpiry() {
   setToken(null)
   for (const fn of expiryListeners) fn()
+}
+
+/**
+ * Fires whenever the API hands back a fresher copy of the signed-in account —
+ * a token refresh, or a re-check after a 403. An admin can change someone's
+ * role at any time, so the auth provider swaps the user in and the routes
+ * re-decide between the customer area and the employee screen.
+ */
+type UserListener = (user: User) => void
+const userListeners = new Set<UserListener>()
+
+export function onUserRefreshed(fn: UserListener) {
+  userListeners.add(fn)
+  return () => {
+    userListeners.delete(fn)
+  }
+}
+
+function announceUser(user: User | undefined) {
+  if (!user) return
+  for (const fn of userListeners) fn(user)
 }
 
 type Options = {
@@ -184,6 +205,7 @@ function refreshToken(): Promise<string | null> {
       const envelope = (await parse(response)) as AuthEnvelope | null
       if (!envelope?.token) return null
       setToken(envelope.token)
+      announceUser(envelope.data)
       return envelope.token
     } catch {
       return null
@@ -196,6 +218,33 @@ function refreshToken(): Promise<string | null> {
   })()
 
   return refreshing
+}
+
+/**
+ * A 403 from a customer endpoint means the account is no longer a customer —
+ * most likely an admin made it an employee mid-session. The token is still
+ * good, so this is not a logout: ask who we are again and let the routes move
+ * the user to the right screen. Parallel 403s share one lookup.
+ */
+let rechecking: Promise<void> | null = null
+
+function recheckUser(): Promise<void> {
+  rechecking ??= (async () => {
+    try {
+      const response = await send('/auth/me', {})
+      if (!response.ok) return
+      const body = (await parse(response)) as { data?: User } | null
+      announceUser(body?.data)
+    } catch {
+      /* the original 403 still reaches the caller */
+    } finally {
+      queueMicrotask(() => {
+        rechecking = null
+      })
+    }
+  })()
+
+  return rechecking
 }
 
 async function sendWithRetry(path: string, options: Options): Promise<Response> {
@@ -252,6 +301,9 @@ export async function request<T>(path: string, options: Options = {}): Promise<T
 
   if (!response.ok) {
     if (response.status === 401 && options.auth !== false) announceExpiry()
+    // Not a logout and not a refresh: the token is fine, the role is not.
+    if (response.status === 403 && options.auth !== false && !path.startsWith('/auth/'))
+      await recheckUser()
     throw new ApiError(
       response.status,
       response.status === 429

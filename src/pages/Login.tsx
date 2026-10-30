@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../lib/api'
-import { useAuth } from '../lib/auth-context'
+import { isEmployee, useAuth } from '../lib/auth-context'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { AuthLayout, type AuthPoint } from '../components/AuthLayout'
 import { PasswordField } from '../components/PasswordField'
@@ -37,7 +37,8 @@ export function Login() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
 
-  if (!booting && user) return <Navigate to={from} replace />
+  if (!booting && user)
+    return <Navigate to={isEmployee(user) ? '/employee' : from} replace />
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -51,6 +52,12 @@ export function Login() {
       // Admin and manager accounts belong in the Blade panel, not this app.
       if (result.kind === 'staff') {
         window.location.href = ADMIN_URL
+        return
+      }
+
+      // Employees have their own screen; the customer area would 403 them.
+      if (result.kind === 'employee') {
+        navigate('/employee', { replace: true })
         return
       }
 

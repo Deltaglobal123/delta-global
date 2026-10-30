@@ -2660,6 +2660,34 @@
   font-size: 15px;
 }
 
+/* ============================== employee screen ============================ */
+
+.employee-shell {
+  position: relative;
+  display: grid;
+  gap: 28px;
+  justify-items: center;
+  width: 100%;
+  max-width: 520px;
+  padding-inline: 16px;
+}
+
+.employee-shell .auth-card {
+  width: 100%;
+}
+
+.employee-user {
+  margin-top: 6px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.employee-shell .app-signout {
+  align-self: flex-start;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 268px minmax(0, 1fr);

@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../../lib/auth-context'
+import { isEmployee, useAuth } from '../../lib/auth-context'
 import { StatusProvider } from '../../lib/status'
 import { AppLayout } from './AppLayout'
 
@@ -21,6 +21,10 @@ export function RequireAuth() {
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
+
+  // Decided before StatusProvider mounts: it polls /status, and every customer
+  // endpoint answers 403 for an employee.
+  if (isEmployee(user)) return <Navigate to="/employee" replace />
 
   return (
     <StatusProvider>

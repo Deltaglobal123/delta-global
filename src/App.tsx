@@ -19,6 +19,7 @@ import { Deposit } from './pages/app/Deposit'
 import { Trading } from './pages/app/Trading'
 import { Withdraw } from './pages/app/Withdraw'
 import { Transactions } from './pages/app/Transactions'
+import { EmployeeHome } from './pages/employee/EmployeeHome'
 import { PRIVACY, REFUNDS, RISK_DISCLOSURE, TERMS } from './data'
 
 export default function App() {
@@ -35,6 +36,9 @@ export default function App() {
             <Route path="withdraw" element={<Withdraw />} />
             <Route path="transactions" element={<Transactions />} />
           </Route>
+
+          {/* Employees sign in through the same form but never see /app. */}
+          <Route path="/employee" element={<EmployeeHome />} />
 
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
