@@ -86,12 +86,14 @@ function seed(count: number): Candle[] {
 export function MarketPulseChart() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const tagRef = useRef<HTMLSpanElement>(null)
+  const quoteRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
     const tag = tagRef.current
-    if (!canvas || !ctx || !tag) return
+    const quote = quoteRef.current
+    if (!canvas || !ctx || !tag || !quote) return
 
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -236,6 +238,7 @@ export function MarketPulseChart() {
       if (price !== shownPrice) {
         shownPrice = price
         tag!.textContent = price
+        quote!.textContent = price
       }
       tag!.style.background = colour
       tag!.style.transform = `translateY(${canvas!.offsetTop + ly}px) translateY(-50%)`
@@ -279,13 +282,27 @@ export function MarketPulseChart() {
 
   return (
     <figure className="market-pulse">
+      <div className="market-pulse-head">
+        <div className="market-pulse-pair">
+          <span className="market-pulse-coin" aria-hidden="true">
+            ₿
+          </span>
+          <div>
+            <strong>Bitcoin</strong>
+            <span>BTC / INR</span>
+          </div>
+        </div>
+        <span ref={quoteRef} className="market-pulse-last" aria-hidden="true">
+          {money.format(START)}
+        </span>
+      </div>
       <canvas ref={canvasRef} className="market-pulse-canvas" aria-hidden="true" />
       <span ref={tagRef} className="market-pulse-price" aria-hidden="true">
         {money.format(START)}
       </span>
       <figcaption className="market-pulse-caption">
         <span className="market-pulse-dot" aria-hidden="true" />
-        Market activity · illustrative
+        Bitcoin market activity in rupees · illustrative
       </figcaption>
     </figure>
   )

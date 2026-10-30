@@ -3843,15 +3843,62 @@
 }
 
 .market-pulse-caption {
-  position: absolute;
-  top: 10px;
-  left: 14px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 7px;
+  padding: 2px 14px 12px;
   font-size: 12px;
   letter-spacing: 0.04em;
   color: var(--text-dim);
+}
+
+/* The pair being traded and its live quote, above the candles. */
+.market-pulse-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 4px 14px 6px;
+}
+
+.market-pulse-pair {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.market-pulse-coin {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f7931a;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.market-pulse-pair strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text-strong);
+}
+
+.market-pulse-pair span:not(.market-pulse-coin) {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.market-pulse-last {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
 }
 
 .market-pulse-dot {
