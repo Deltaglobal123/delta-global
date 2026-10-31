@@ -29,6 +29,10 @@ export function StartProject() {
   const available = wallet?.available_paise ?? 0
   const trade = status?.active_trade ?? null
 
+  // A deposit, run or payout still with the desk. Nothing new starts from here
+  // until it is approved or rejected, so the buttons step aside meanwhile.
+  const waiting = status?.is_waiting === true
+
   const belowMinimum = available < MIN_TRADE_PAISE
   const blockedByRun = Boolean(trade) || status?.can_start_trading === false
 
@@ -132,26 +136,35 @@ export function StartProject() {
             <MarketPulseChart />
           )}
 
-          <div className="start-actions">
-            <Link className="btn btn-ghost btn-lg" to="/app/deposit">
-              Add money
-              <ArrowIcon />
-            </Link>
-            <button
-              type="button"
-              className="btn btn-primary btn-lg"
-              onClick={onStart}
-              disabled={loading || busy}
-            >
-              Start project
-              <ArrowIcon />
-            </button>
-          </div>
+          {waiting ? (
+            <p className="form-notice start-note" role="status">
+              A request is waiting for approval from our team. You can add
+              money or start a new project once it has been reviewed.
+            </p>
+          ) : (
+            <>
+              <div className="start-actions">
+                <Link className="btn btn-ghost btn-lg" to="/app/deposit">
+                  Add money
+                  <ArrowIcon />
+                </Link>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-lg"
+                  onClick={onStart}
+                  disabled={loading || busy}
+                >
+                  Start project
+                  <ArrowIcon />
+                </button>
+              </div>
 
-          <p className="app-muted start-note">
-            Starting commits your full available balance to one run, after a
-            short set of questions. A minimum of ₹499.00 is required.
-          </p>
+              <p className="app-muted start-note">
+                Starting commits your full available balance to one run, after a
+                short set of questions. A minimum of ₹499.00 is required.
+              </p>
+            </>
+          )}
         </div>
       </AppSection>
 
