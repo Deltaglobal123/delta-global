@@ -3,6 +3,7 @@ import { PRICING_INTRO } from '../data'
 import { ArrowIcon } from '../icons'
 import { SectionHead } from '../components/SectionHead'
 import { Hero, HeroStart } from '../sections/Hero'
+import { Clients } from '../sections/Clients'
 import { DeltaOps } from '../sections/DeltaOps'
 import { Intro } from '../sections/Intro'
 import { Steps } from '../sections/Steps'
@@ -62,6 +63,7 @@ export function Home() {
     <>
       <Hero />
       <HeroStart />
+      <Clients />
       {/* Proof sits high: the awards are the first outside verification a
           visitor meets, and they work hardest before the feature tour, not
           after it. */}

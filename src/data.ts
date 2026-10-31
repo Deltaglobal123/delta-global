@@ -486,6 +486,42 @@ export const AWARDS: Award[] = [
   },
 ]
 
+/* --------------------------------- clients -------------------------------- */
+
+/**
+ * The "worked with" logo strip under the hero. Each entry renders as a styled
+ * wordmark in its brand colour; to use an official logo instead, drop the file
+ * in public/clients/ and set `logo` to its path (e.g. '/clients/amazon.svg').
+ *
+ * Only list companies there is a real working relationship with — showing a
+ * brand here is a public claim of association.
+ */
+export type Client = {
+  name: string
+  color: string
+  logo?: string
+}
+
+export const CLIENTS_INTRO = {
+  eyebrow: 'Trusted by',
+  heading: 'Companies we have worked with',
+}
+
+export const CLIENTS: Client[] = [
+  { name: 'amazon', color: '#ff9900' },
+  { name: 'Flipkart', color: '#2874f0' },
+  { name: 'meesho', color: '#f43397' },
+  { name: 'Swiggy', color: '#fc8019' },
+  { name: 'zomato', color: '#e23744' },
+  { name: 'Myntra', color: '#ff3f6c' },
+  { name: 'Paytm', color: '#00baf2' },
+  { name: 'TCS', color: '#4e84c4' },
+  { name: 'Infosys', color: '#007cc3' },
+  { name: 'wipro', color: '#4ea3dd' },
+  { name: 'Reliance', color: '#d4af37' },
+  { name: 'HDFC Bank', color: '#3b6fd4' },
+]
+
 /* ---------------------------------- about --------------------------------- */
 
 export const ABOUT = {
