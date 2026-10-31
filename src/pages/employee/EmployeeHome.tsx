@@ -7,6 +7,7 @@ import { useList } from '../../lib/useList'
 import type {
   Attendance,
   AttendanceToday,
+  IncentivesEnvelope,
   PerformanceWarningsEnvelope,
   User,
 } from '../../lib/types'
@@ -15,6 +16,7 @@ import { LogoutIcon } from '../../components/app/app-icons'
 import { AppPageHead } from '../../components/app/AppPageHead'
 import { AttendanceCard } from '../../components/employee/AttendanceCard'
 import { AttendanceHistory } from '../../components/employee/AttendanceHistory'
+import { IncentivesTile } from '../../components/employee/IncentivesTile'
 import { WarningsSection } from '../../components/employee/WarningsSection'
 
 /**
@@ -84,23 +86,26 @@ function EmployeeDashboard({ user }: { user: User }) {
 
   const today = useResource<AttendanceToday>('/employee/attendance/today')
   const warnings = useResource<PerformanceWarningsEnvelope>('/employee/performance-warnings')
+  const incentives = useResource<IncentivesEnvelope>('/employee/incentives')
   const history = useList<Attendance>('/employee/attendance')
 
   const { load: loadToday } = today
   const { load: loadWarnings } = warnings
+  const { load: loadIncentives } = incentives
   const { reload: reloadHistory } = history
 
-  // There is no push when a warning is issued, and a tab left open overnight
-  // shows yesterday's buttons — so coming back to the tab re-reads both.
+  // There is no push when a warning or incentive is given, and a tab left open
+  // overnight shows yesterday's buttons — so coming back to the tab re-reads them.
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return
       loadToday()
       loadWarnings()
+      loadIncentives()
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [loadToday, loadWarnings])
+  }, [loadToday, loadWarnings, loadIncentives])
 
   const onAttendanceChanged = useCallback(async () => {
     reloadHistory()
@@ -159,11 +164,19 @@ function EmployeeDashboard({ user }: { user: User }) {
             error={today.error}
             onChanged={onAttendanceChanged}
           />
-          <WarningsSection
-            warnings={warnings.data}
-            loading={warnings.loading}
-            error={warnings.error}
-          />
+          <div className="employee-stack">
+            <IncentivesTile
+              count={incentives.data?.data.count ?? null}
+              loading={incentives.loading}
+              error={incentives.error}
+              onRetry={() => void loadIncentives()}
+            />
+            <WarningsSection
+              warnings={warnings.data}
+              loading={warnings.loading}
+              error={warnings.error}
+            />
+          </div>
         </div>
 
         <AttendanceHistory

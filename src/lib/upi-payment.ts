@@ -37,3 +37,52 @@ export function toPaymentBody(
   form.append('screenshot', values.screenshot)
   return form
 }
+
+/** Phone photos are routinely 5–12 MB; this is the longest side we keep. */
+const MAX_SIDE = 2400
+
+/**
+ * Brings a screenshot under the 4 MB cap instead of turning it away. A file
+ * already small enough goes as-is; a bigger one is redrawn as a JPEG, shrinking
+ * the quality and then the size until it fits. Null when the browser cannot
+ * decode it or it still will not fit — the caller asks for another image.
+ */
+export async function fitScreenshot(file: File): Promise<File | null> {
+  if (file.size <= MAX_SCREENSHOT) return file
+
+  let bitmap: ImageBitmap
+  try {
+    bitmap = await createImageBitmap(file)
+  } catch {
+    return null
+  }
+
+  try {
+    let scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height))
+
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return null
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+
+      const quality = attempt < 3 ? 0.85 - attempt * 0.15 : 0.6
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', quality),
+      )
+      if (blob && blob.size <= MAX_SCREENSHOT) {
+        const name = file.name.replace(/\.[^.]+$/, '') || 'screenshot'
+        return new File([blob], `${name}.jpg`, { type: 'image/jpeg' })
+      }
+
+      // Quality alone was not enough — start shrinking the picture too.
+      if (attempt >= 2) scale *= 0.75
+    }
+
+    return null
+  } finally {
+    bitmap.close()
+  }
+}

@@ -243,5 +243,11 @@ export type PerformanceWarning = {
 export type PerformanceWarningsEnvelope = {
   /** Oldest first — number them by position, ids have gaps. */
   data: PerformanceWarning[]
-  meta: { count: number; max: number }
+  /** No limit any more: an admin can issue any number of warnings. */
+  meta: { count: number }
+}
+
+/** Incentives are a count only — no amount, reason or list. It can go down. */
+export type IncentivesEnvelope = {
+  data: { count: number }
 }

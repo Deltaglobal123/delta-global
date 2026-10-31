@@ -2695,6 +2695,23 @@
   align-items: start;
 }
 
+.employee-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+.incentives-failed {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.incentives-failed .text-link {
+  font-size: 14px;
+}
+
 .attendance-state {
   display: flex;
   flex-direction: column;
@@ -2710,6 +2727,18 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Any number of warnings can pile up; the full list scrolls inside the card
+   rather than pushing the attendance history off the page. */
+.warning-list.is-expanded {
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.warning-toggle {
+  align-self: flex-start;
 }
 
 .warning-item {
@@ -4167,6 +4196,19 @@
    payment screen rather than a confirmation — wider than the quiz card. */
 .charge-card {
   width: min(600px, 100%);
+}
+
+.charge-step {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.charge-trail {
+  margin: 0;
+  list-style: none;
 }
 
 .charge-title {

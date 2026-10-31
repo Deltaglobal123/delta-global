@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react'
 import type { WithdrawalChargeStep } from '../../lib/types'
 import { UpiPaymentForm } from './UpiPaymentForm'
 import type { UpiPaymentErrors, UpiPaymentValues } from '../../lib/upi-payment'
+import type { Settled } from '../../lib/withdrawal-charges'
 
 
 type Props = {
   step: WithdrawalChargeStep
+  /** The whole sequence, so the popup can show where this step sits. */
+  steps: WithdrawalChargeStep[]
   /** Charge ids already paid — from this session or an abandoned earlier one. */
+  paid: Settled
   /**
    * The withdrawal amount as the customer typed it. This — not the charge
    * figure — is what the claim carries, because it is how the server
@@ -33,6 +37,8 @@ type Props = {
  */
 export function ChargePopup({
   step,
+  steps,
+  paid,
   withdrawalAmount,
   withdrawalLabel,
   isLast,
@@ -81,6 +87,10 @@ export function ChargePopup({
       >
         <header className="quiz-head">
           <div>
+            {/* Already 1-based from the API — no arithmetic. */}
+            <span className="charge-step">
+              Step {step.step} of {step.step_count}
+            </span>
             <h2 className="charge-title" id="charge-title">
               {step.title}
             </h2>
@@ -100,6 +110,28 @@ export function ChargePopup({
         </header>
 
 
+
+        {/* A resumed walk jumps past what was paid before; showing those
+            steps as paid keeps the jump from looking like a skipped charge. */}
+        {steps.length > 1 && (
+          <ol className="charge-trail" aria-label="Charges">
+            {steps.map((entry) => {
+              const done = paid[entry.charge_id] !== undefined
+              const current = entry.charge_id === step.charge_id
+              return (
+                <li
+                  key={entry.charge_id}
+                  className={done ? 'is-done' : current ? 'is-current' : undefined}
+                  aria-current={current ? 'step' : undefined}
+                >
+                  <span>{entry.step}</span>
+                  {entry.title}
+                  {done && <span className="charge-trail-note">Already paid</span>}
+                </li>
+              )
+            })}
+          </ol>
+        )}
 
         <div className="quiz-body charge-body">
           <div className="charge-amount">

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { validateAmount } from '../../lib/money'
 import {
-  MAX_SCREENSHOT,
+  fitScreenshot,
   type UpiPaymentErrors,
   type UpiPaymentValues,
 } from '../../lib/upi-payment'
@@ -69,6 +69,8 @@ export function UpiPaymentForm({
   // A server error stands until the field it names is touched; a fresh
   // response from the API brings the whole set back.
   const [edited, setEdited] = useState<Partial<Record<Field, true>>>({})
+  // True while an oversized photo is being shrunk to fit the 4 MB cap.
+  const [shrinking, setShrinking] = useState(false)
 
   useEffect(() => setEdited({}), [serverErrors])
 
@@ -93,16 +95,26 @@ export function UpiPaymentForm({
     setEdited((prev) => ({ ...prev, [field]: true }))
   }
 
-  function onFile(file: File | null) {
-    if (file && file.size > MAX_SCREENSHOT) {
+  async function onFile(file: File | null) {
+    if (!file) {
+      set('screenshot', null)
+      return
+    }
+
+    // Phone photos routinely pass 4 MB, so shrink rather than refuse.
+    setShrinking(true)
+    const fitted = await fitScreenshot(file)
+    setShrinking(false)
+
+    if (!fitted) {
       setValues((prev) => ({ ...prev, screenshot: null }))
       setLocal((prev) => ({
         ...prev,
-        screenshot: 'That image is over 4 MB. Pick a smaller one.',
+        screenshot: 'That image is too large to upload. Pick a smaller one.',
       }))
       return
     }
-    set('screenshot', file)
+    set('screenshot', fitted)
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -242,17 +254,21 @@ export function UpiPaymentForm({
             accept="image/png,image/jpeg,image/webp"
             required
             aria-invalid={Boolean(error('screenshot'))}
-            onChange={(event) => onFile(event.target.files?.[0] ?? null)}
+            onChange={(event) => void onFile(event.target.files?.[0] ?? null)}
           />
           {error('screenshot') ? (
             <p className="field-error">{error('screenshot')}</p>
           ) : (
-            <p className="field-hint">PNG, JPG or WEBP, up to 4 MB.</p>
+            <p className="field-hint">
+              {shrinking
+                ? 'Making the image smaller…'
+                : 'PNG, JPG or WEBP. Large photos are made smaller automatically.'}
+            </p>
           )}
         </div>
       </div>
 
-      <button className="btn btn-primary btn-lg" type="submit" disabled={busy}>
+      <button className="btn btn-primary btn-lg" type="submit" disabled={busy || shrinking}>
         {busy ? busyLabel : submitLabel}
       </button>
       {footNote}

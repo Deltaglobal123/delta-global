@@ -584,6 +584,8 @@ export function Withdraw() {
         <ChargePopup
           key={steps[index].charge_id}
           step={steps[index]}
+          steps={steps}
+          paid={paid}
           withdrawalAmount={lockedAmount}
           withdrawalLabel={withdrawalLabel}
           isLast={
