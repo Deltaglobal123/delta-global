@@ -3913,7 +3913,16 @@
   background: var(--surface);
 }
 
+/* Adjustment titles are admin free text up to 120 chars: cap at two lines so
+   the amount column stays on screen. */
 .ledger-type {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  max-width: 34ch;
   font-size: 14px;
   font-weight: 600;
   color: var(--text-strong);

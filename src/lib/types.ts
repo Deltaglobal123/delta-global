@@ -159,7 +159,13 @@ export type TransactionType =
 export type Transaction = {
   id: number
   type: TransactionType
+  /**
+   * Already resolved by the backend — for adjustments it is the admin's title,
+   * or "Wallet credit" / "Wallet debit" on older rows that have none.
+   */
   type_label: string
+  /** The admin's title on adjustments made since titles existed, otherwise null. */
+  title: string | null
   amount_paise: number
   amount: string
   locked_delta_paise: number

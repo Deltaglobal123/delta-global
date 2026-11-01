@@ -77,8 +77,12 @@ export function Transactions() {
                     <tr key={entry.id}>
                       <td>{formatDate(entry.created_at)}</td>
                       <td>
-                        <strong className="ledger-type">{entry.type_label}</strong>
-                        {entry.description && (
+                        <strong className="ledger-type" title={entry.type_label}>
+                          {entry.type_label}
+                        </strong>
+                        {/* An adjustment's description is the admin's audit note,
+                            not meant for the customer — the title stands alone. */}
+                        {entry.type !== 'adjustment' && entry.description && (
                           <p className="row-note">{entry.description}</p>
                         )}
                       </td>
