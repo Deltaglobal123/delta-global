@@ -111,7 +111,7 @@ export function Dashboard() {
               </div>
               <div>
                 <dt>Run</dt>
-                <dd>#{trade.id}</dd>
+                <dd>{trade.id}</dd>
               </div>
             </dl>
             <p className="run-note">

@@ -137,7 +137,7 @@ export function Trading() {
             <dl className="detail-grid">
               <div>
                 <dt>Run</dt>
-                <dd>#{trade.id}</dd>
+                <dd>{trade.id}</dd>
               </div>
               <div>
                 <dt>Requested</dt>

@@ -155,9 +155,10 @@ export type TransactionType =
   | 'withdrawal_paid'
   | 'withdrawal_release'
   | 'adjustment'
+  | 'withdrawal_charge'
 
 export type Transaction = {
-  id: number
+  id: number | string
   type: TransactionType
   /**
    * Already resolved by the backend — for adjustments it is the admin's title,
@@ -169,7 +170,7 @@ export type Transaction = {
   amount_paise: number
   amount: string
   locked_delta_paise: number
-  balance_after_paise: number
+  balance_after_paise: number | null
   balance_after: string
   description: string | null
   created_at: string

@@ -11,6 +11,13 @@ import { Pager } from '../../components/app/Pager'
  * rather than showing a misleading ₹0.00.
  */
 function movement(entry: Transaction) {
+  if (entry.type === 'withdrawal_charge') {
+    return {
+      text: `${entry.amount} paid`,
+      className: 'num-held',
+    }
+  }
+
   if (entry.amount_paise !== 0) {
     return {
       text: `${entry.amount_paise > 0 ? '+' : ''}${entry.amount}`,
@@ -80,14 +87,12 @@ export function Transactions() {
                         <strong className="ledger-type" title={entry.type_label}>
                           {entry.type_label}
                         </strong>
-                        {/* An adjustment's description is the admin's audit note,
-                            not meant for the customer — the title stands alone. */}
-                        {entry.type !== 'adjustment' && entry.description && (
+                        {entry.description && (
                           <p className="row-note">{entry.description}</p>
                         )}
                       </td>
                       <td className={className}>{text}</td>
-                      <td className="num-strong">{entry.balance_after}</td>
+                      <td className="num-strong">{entry.balance_after ?? '—'}</td>
                     </tr>
                   )
                 })}
