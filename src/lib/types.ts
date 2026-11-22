@@ -44,7 +44,7 @@ export type Deposit = {
   amount: string
   credited_paise: number | null
   credited: string | null
-  reference: string
+  reference: string | null
   payer_name: string | null
   payer_upi_id: string | null
   paid_at: string | null

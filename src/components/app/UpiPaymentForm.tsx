@@ -128,10 +128,10 @@ export function UpiPaymentForm({
       if (amountError) found.amount = amountError
     }
 
-    // The UTR may be left empty; one that is typed must be 6 to 60 characters.
+    // The UTR may be left empty; one that is typed must be at most 60 characters.
     const reference = values.reference.trim()
-    if (reference !== '' && (reference.length < 6 || reference.length > 60))
-      found.reference = 'A UTR must be 6 to 60 characters — or leave it empty.'
+    if (reference !== '' && reference.length > 60)
+      found.reference = 'A UTR must be at most 60 characters — or leave it empty.'
 
     // Proof is required on every claim, deposit or charge alike.
     if (!values.screenshot)

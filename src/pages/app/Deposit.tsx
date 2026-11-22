@@ -303,7 +303,7 @@ export function Deposit() {
                     {/* Our team credits what the bank statement says, which is
                         not always what was claimed. */}
                     <td className="num-strong">{deposit.credited ?? '—'}</td>
-                    <td className="mono">{deposit.reference}</td>
+                    <td className="mono">{deposit.reference || '—'}</td>
                     <td>
                       <StatusPill
                         status={deposit.status}

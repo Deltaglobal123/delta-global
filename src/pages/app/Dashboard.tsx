@@ -159,7 +159,7 @@ export function Dashboard() {
                 <li key={deposit.id}>
                   <div>
                     <strong>{deposit.amount}</strong>
-                    <span>Ref {deposit.reference}</span>
+                    <span>{deposit.reference ? `Ref ${deposit.reference}` : 'No ref'}</span>
                   </div>
                   <StatusPill
                     status={deposit.status}
